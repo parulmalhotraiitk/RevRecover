@@ -90,7 +90,8 @@ app.post('/api/run-agent', async (req, res) => {
   }
 
   // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
-  let targetUrl = process.env.MOCK_PORTAL_URL || publicPortalUrl || "http://localhost:5173";
+  // Dashboard Input (publicPortalUrl) takes priority over Environment Variable (MOCK_PORTAL_URL)
+  let targetUrl = publicPortalUrl || process.env.MOCK_PORTAL_URL || "http://localhost:5173";
   
   // Smart Append: Ensure simulation portal path is present for AWS Simulation Mode
   if (targetUrl.includes('awsapprunner.com') && !targetUrl.includes('/portal')) {
