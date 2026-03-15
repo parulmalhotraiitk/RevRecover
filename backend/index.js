@@ -127,6 +127,8 @@ app.get('/api/check-run/:id', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    // Disable ETag to prevent 304 Not Modified loops
+    res.removeHeader('ETag');
 
     const response = await fetch(`https://agent.tinyfish.ai/v1/runs/${id}`, {
       headers: { "X-API-Key": apiKey }
@@ -138,7 +140,11 @@ app.get('/api/check-run/:id', async (req, res) => {
     }
 
     // TinyFish uses "success" for completion, our frontend expects "completed"
-    const normalizedStatus = data.status === 'success' ? 'completed' : data.status;
+    // Also handling potential uppercase versions for total robustness
+    const rawStatus = (data.status || 'unknown').toLowerCase();
+    const normalizedStatus = (rawStatus === 'success' || rawStatus === 'completed') ? 'completed' : rawStatus;
+
+    console.log(`[POLL] Run ${id}: TinyFish reported '${data.status}', normalized to '${normalizedStatus}'`);
 
     res.json({ 
       success: true, 

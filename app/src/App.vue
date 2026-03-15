@@ -121,7 +121,9 @@ const handleRunAgent = async () => {
             const checkRes = await fetch(`${apiBaseUrl}/api/check-run/${result.runId}?t=${Date.now()}`);
             const checkData = await checkRes.json();
             
-            if (checkData.status === 'completed') {
+            console.log(`[FRONTEND POLL] Received status: ${checkData.status}`);
+            
+            if (checkData.status === 'completed' || checkData.status === 'success') {
                 isDone = true;
                 await addFeedLog(`[SUCCESS] Cloud Agent finished work. Syncing state...`, 0.5);
                 agentStatus.value = "success";
