@@ -97,6 +97,18 @@ app.post('/api/run-agent', async (req, res) => {
       targetUrl = targetUrl.endsWith('/') ? `${targetUrl}portal` : `${targetUrl}/portal`;
       console.log(`✨ Smart URL Correction: Appended /portal to ${targetUrl}`);
   }
+  // Multi-Payer Credential Vault Logic
+  // Looks for env vars matching PAYER_[NAME]_USER and PAYER_[NAME]_PASS
+  const getPortalCredentials = (payerName) => {
+    const normalized = payerName.split(' ')[0].toUpperCase(); // "Aetna Medicare" -> "AETNA"
+    return {
+      user: process.env[`PAYER_${normalized}_USER`] || process.env.PORTAL_USER || 'admin',
+      pass: process.env[`PAYER_${normalized}_PASS`] || process.env.PORTAL_PASS || 'password'
+    };
+  };
+
+  const creds = getPortalCredentials(payer);
+
   const goal = `
     PHASE 1: LIVE RESEARCH (REAL WORK)
     1. Navigate to: https://clinicaltrials.gov/
@@ -106,9 +118,9 @@ app.post('/api/run-agent', async (req, res) => {
 
     PHASE 2: ACTION (PORTAL AUTOMATION)
     5. Navigate to: ${targetUrl}
-    6. Securely authenticate using the following credentials:
-       - Username: ${process.env.PORTAL_USER || 'admin'}
-       - Password: ${process.env.PORTAL_PASS || 'password'}
+    6. Securely authenticate using these ${payer}-specific credentials:
+       - Username: ${creds.user}
+       - Password: ${creds.pass}
     7. Dismiss any HIPAA or legal affirmation modals if they appear.
     8. Find the claim with ID "${claimId}".
     9. Expand adjudication details and initiate the Appeal process.
