@@ -1,34 +1,22 @@
 version: 1
-applications:
-  - appRoot: app
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - npm ci
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: dist
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
-  - appRoot: enterprise-portal
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - npm ci
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: dist
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd app && npm ci
+        - cd ../enterprise-portal && npm ci
+    build:
+      commands:
+        - cd enterprise-portal && npm run build
+        - cd ../app && npm run build
+        # Merge the portal into the app's distribution folder
+        - mkdir -p app/dist/portal
+        - cp -r enterprise-portal/dist/* app/dist/portal/
+  artifacts:
+    baseDirectory: app/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - app/node_modules/**/*
+      - enterprise-portal/node_modules/**/*
