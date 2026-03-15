@@ -123,6 +123,11 @@ app.get('/api/check-run/:id', async (req, res) => {
   const apiKey = process.env.TINYFISH_API_KEY;
 
   try {
+    // Force no-cache for polling
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const response = await fetch(`https://agent.tinyfish.ai/v1/runs/${id}`, {
       headers: { "X-API-Key": apiKey }
     });
@@ -132,9 +137,12 @@ app.get('/api/check-run/:id', async (req, res) => {
       return res.status(response.status).json({ success: false, message: data.message });
     }
 
+    // TinyFish uses "success" for completion, our frontend expects "completed"
+    const normalizedStatus = data.status === 'success' ? 'completed' : data.status;
+
     res.json({ 
       success: true, 
-      status: data.status, // e.g. "completed", "running", "failed"
+      status: normalizedStatus, 
       result: data.result 
     });
   } catch (err) {

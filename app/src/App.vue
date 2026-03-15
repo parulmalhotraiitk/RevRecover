@@ -117,7 +117,8 @@ const handleRunAgent = async () => {
             attempts++;
             await new Promise(r => setTimeout(r, 10000)); // wait 10s
             
-            const checkRes = await fetch(`${apiBaseUrl}/api/check-run/${result.runId}`);
+            // Add timestamp to bypass caching
+            const checkRes = await fetch(`${apiBaseUrl}/api/check-run/${result.runId}?t=${Date.now()}`);
             const checkData = await checkRes.json();
             
             if (checkData.status === 'completed') {
