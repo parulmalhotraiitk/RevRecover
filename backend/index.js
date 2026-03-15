@@ -140,7 +140,8 @@ app.post('/api/run-agent', async (req, res) => {
        - Password: ${creds.pass}
     7. Dismiss any HIPAA or legal affirmation modals if they appear.
     8. Find the claim with ID "${claimId}".
-    9. Expand adjudication details and initiate the Appeal process.
+    9. Click the button with ID "btn-resolve-${claimId}" to initiate the appeal.
+    10. Expand adjudication details and initiate the Appeal process if needed.
     10. Complete the form using the Clinical Evidence gathered in Phase 1:
         - Prior Authorization: ${patientContext.priorAuthCode || 'None'}
         - Supporting Proof: Use the extracted research from ClinicalTrials.gov to write a compelling 2-sentence medical necessity statement.
