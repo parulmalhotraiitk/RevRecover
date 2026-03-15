@@ -5,9 +5,23 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const path = require('path');
 
 app.use(cors());
 app.use(express.json());
+
+// Global state for Simulation Portal
+let agentSessionActive = false;
+let portalState = [
+  { id: "CLM-992-81A", patient: "Eleanor Vance", amount: "$12,450.00", status: "Denied" },
+  { id: "CLM-814-22X", patient: "Marcus Thorne", amount: "$3,200.00", status: "Denied" },
+  { id: "CLM-105-99B", patient: "Sarah Blake", amount: "$875.00", status: "Appealing" },
+  { id: "CLM-202-55K", patient: "Julian Voss", amount: "$21,100.00", status: "Denied" },
+  { id: "CLM-443-11L", patient: "Fiona Garrity", amount: "$1,450.00", status: "Denied" },
+  { id: "CLM-778-90P", patient: "Desmond Miles", amount: "$45,600.00", status: "Denied" },
+  { id: "CLM-991-04D", patient: "Lara Croft", amount: "$6,800.00", status: "Denied" },
+  { id: "CLM-552-33W", patient: "Arthur Morgan", amount: "$15,200.00", status: "Denied" }
+];
 
 // Global Error Handler for total capture
 process.on('uncaughtException', (err) => {
@@ -27,16 +41,37 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'active', service: 'RevRecover Agent Backend' });
 });
 
+// Serve Simulation Portal
+app.get('/portal', (req, res) => {
+  res.sendFile(path.join(__dirname, 'simulation-portal.html'));
+});
+
+// Portal Sync Endpoints
+app.get('/api/portal-claims', (req, res) => {
+  res.json({ claims: portalState, agentSessionActive });
+});
+
+app.post('/api/portal-submit', (req, res) => {
+  const { claimId, notes } = req.body;
+  console.log(`\n📬 [PORTAL SYNC] Received submission for ${claimId}`);
+  console.log(`Notes: ${notes}`);
+  
+  const claim = portalState.find(c => c.id === claimId);
+  if (claim) {
+    claim.status = "Appealing";
+  }
+  res.json({ success: true });
+});
+
 // Mock Patient Database to provide context to the Agent
 const patientDatabase = {
-  "CLM-992-81A": {
-    priorAuthCode: "AUTH-88X291-B",
-    clinicalNotes: "Patient requires extended physical therapy due to lack of mobility improvement. Conservative treatment failed.",
-  },
-  "CLM-814-22X": {
-    priorAuthCode: "AUTH-11C440-Z",
-    clinicalNotes: "MRI confirms tear. Surgery is medically necessary to prevent further joint damage.",
-  }
+  "CLM-992-81A": { priorAuthCode: "AUTH-88X291-B" },
+  "CLM-814-22X": { priorAuthCode: "AUTH-11C440-Z" },
+  "CLM-202-55K": { priorAuthCode: "AUTH-VOSS-99" },
+  "CLM-443-11L": { priorAuthCode: "AUTH-GARRITY-11" },
+  "CLM-778-90P": { priorAuthCode: "AUTH-MILES-77" },
+  "CLM-991-04D": { priorAuthCode: "AUTH-CROFT-00" },
+  "CLM-552-33W": { priorAuthCode: "AUTH-MORGAN-55" }
 };
 
 app.post('/api/run-agent', async (req, res) => {
@@ -55,8 +90,13 @@ app.post('/api/run-agent', async (req, res) => {
   }
 
   // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
-  // Order of priority: environment variable > request body > local fallback
-  const targetUrl = process.env.MOCK_PORTAL_URL || publicPortalUrl || "http://localhost:5173";
+  let targetUrl = process.env.MOCK_PORTAL_URL || publicPortalUrl || "http://localhost:5173";
+  
+  // Smart Append: Ensure simulation portal path is present for AWS Simulation Mode
+  if (targetUrl.includes('awsapprunner.com') && !targetUrl.includes('/portal')) {
+      targetUrl = targetUrl.endsWith('/') ? `${targetUrl}portal` : `${targetUrl}/portal`;
+      console.log(`✨ Smart URL Correction: Appended /portal to ${targetUrl}`);
+  }
   const goal = `
     PHASE 1: LIVE RESEARCH (REAL WORK)
     1. Navigate to: https://clinicaltrials.gov/
@@ -101,6 +141,10 @@ app.post('/api/run-agent', async (req, res) => {
       });
     }
 
+    // Set portal session to active
+    agentSessionActive = true;
+    setTimeout(() => { agentSessionActive = false; }, 300000); // Reset after 5 mins fallback
+
     console.log("✅ TinyFish Agent started successfully:", data.run_id);
     res.json({ 
       success: true, 
@@ -143,6 +187,10 @@ app.get('/api/check-run/:id', async (req, res) => {
     // Also handling potential uppercase versions for total robustness
     const rawStatus = (data.status || 'unknown').toLowerCase();
     const normalizedStatus = (rawStatus === 'success' || rawStatus === 'completed') ? 'completed' : rawStatus;
+
+    if (normalizedStatus === 'completed' || normalizedStatus === 'failed') {
+      agentSessionActive = false;
+    }
 
     console.log(`[POLL] Run ${id}: TinyFish reported '${data.status}', normalized to '${normalizedStatus}'`);
 
