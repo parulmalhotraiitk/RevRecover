@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ShieldAlert, FileText, CheckCircle, Clock, UploadCloud, ChevronRight, Activity, ArrowRight, UserCircle, DollarSign, Users, Zap, Terminal, HelpCircle, ChevronDown, Sun, Moon } from 'lucide-vue-next'
 
 const INITIAL_CLAIMS = [
