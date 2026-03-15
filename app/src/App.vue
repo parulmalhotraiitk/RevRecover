@@ -116,12 +116,12 @@ const handleRunAgent = async () => {
         selectedClaim.value.status = "Appealing";
     } else {
         await addFeedLog(`[ERROR] Backend Reject: ${result.message || 'Unknown Failure'}`, 0);
-        agentStatus.value = "idle";
+        agentStatus.value = "error";
     }
   } catch (err) {
       console.error("Failed to connect to orchestrator backend: ", err);
       await addFeedLog(`[ERROR] Communication Error: Backend is unreachable or returned a crash.`, 0);
-      agentStatus.value = "idle";
+      agentStatus.value = "error";
   }
 }
 </script>
@@ -328,11 +328,11 @@ const handleRunAgent = async () => {
             <!-- Footer Action Area -->
             <div class="p-6 border-t border-[#1E293B] bg-[#0A0C10] mt-auto">
                <button 
-                 v-if="agentStatus === 'idle'"
+                 v-if="agentStatus === 'idle' || agentStatus === 'error'"
                  @click="handleRunAgent"
                  class="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-white to-slate-200 hover:to-slate-300 text-slate-900 font-bold py-3.5 px-6 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 flex items-center justify-between"
                >
-                 <span class="z-10 text-sm tracking-wide">Automate Appeal with Agent</span>
+                 <span class="z-10 text-sm tracking-wide">{{ agentStatus === 'error' ? 'Retry Autonomous Appeal' : 'Automate Appeal with Agent' }}</span>
                  <ArrowRight class="w-5 h-5 z-10 group-hover:translate-x-1 transition-transform" />
                </button>
 

@@ -9,6 +9,14 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Global Error Handler for total capture
+process.on('uncaughtException', (err) => {
+  console.error('🔥 UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 UNHANDLED REJECTION:', reason);
+});
+
 // Root route for verification
 app.get('/', (req, res) => {
   res.send('<h1>🚀 RevRecover Agentic Backend is LIVE</h1><p>The Brain is active and waiting for TinyFish orchestration.</p>');
@@ -16,12 +24,8 @@ app.get('/', (req, res) => {
 
 // Health check route for deployment verification
 app.get('/api/health', (req, res) => {
-  console.log("Health check pinged");
   res.json({ status: 'active', service: 'RevRecover Agent Backend' });
 });
-
-// Helper for masking API keys in logs
-const mask = (key) => key ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : "MISSING";
 
 // Mock Patient Database to provide context to the Agent
 const patientDatabase = {
@@ -44,11 +48,10 @@ app.post('/api/run-agent', async (req, res) => {
 
   const patientContext = patientDatabase[claimId] || {};
   const apiKey = process.env.TINYFISH_API_KEY;
-  console.log(`Using credentials: [Key: ${mask(apiKey)}] [Portal: ${process.env.MOCK_PORTAL_URL || 'Using Request URL'}]`);
 
-  if (!apiKey || apiKey.includes('your_api_key')) {
-    console.error("❌ TinyFish API Key missing or invalid in environment.");
-    return res.status(500).json({ success: false, message: "API Key Configuration Error. Check App Runner variables." });
+  if (!apiKey || apiKey === 'your_api_key_here') {
+    console.error("❌ TinyFish API Key missing or invalid.");
+    return res.status(500).json({ success: false, message: "TinyFish API Key not configured in App Runner environment variables." });
   }
 
   // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
@@ -76,16 +79,16 @@ app.post('/api/run-agent', async (req, res) => {
   console.log("\n🤖 Sending Goal to TinyFish API...");
   
   try {
-    const response = await fetch("https://api.tinyfish.ai/v1/automation/run", {
+    const response = await fetch("https://agent.tinyfish.ai/v1/automation/run", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "X-API-Key": apiKey
       },
       body: JSON.stringify({
         url: targetUrl,
         goal: goal,
-        stream: false // We are doing a simple sync run for now
+        stream: false 
       })
     });
 
@@ -107,9 +110,19 @@ app.post('/api/run-agent', async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Infrastructure Error:", err);
-    res.status(500).json({ success: false, message: `Orchestration Error: ${err.message}` });
+    console.error("❌ CRITICAL ORCHESTRATION ERROR:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: `Backend Failure: ${err.message}`,
+      stack: err.stack 
+    });
   }
+});
+
+// Final Error Middleware
+app.use((err, req, res, next) => {
+  console.error("🔥 EXPRESS ERROR:", err);
+  res.status(500).send("Internal Server Error - Check Logs");
 });
 
 app.listen(PORT, () => {
