@@ -82,6 +82,21 @@ For the agent to function in the cloud, you must configure **Environment Variabl
 | **Backend** | `MOCK_PORTAL_URL` | The public URL of your **Enterprise Portal** (provided by Amplify). |
 | **App** | `VITE_API_URL` | The public URL of your **Backend API**. |
 
+### 4. Multi-Payer Credential Vault 🔐🏢
+RevRecover uses a secure, dynamic identity system to authenticate against different insurance portals.
+
+#### Configuration
+Set environment variables in your **AWS App Runner Console** to manage multiple portals:
+- `PAYER_[NAME]_USER`: Username for a specific provider (e.g., `PAYER_AETNA_USER`).
+- `PAYER_[NAME]_PASS`: Password for a specific provider (e.g., `PAYER_AETNA_PASS`).
+
+#### Fallback Logic (Zero-Config Mode)
+If no high-security environment variables are set, the system intelligently defaults to:
+1. `PORTAL_USER` / `PORTAL_PASS`: A general-purpose credential pair.
+2. `admin` / `password`: Hardcoded defaults specifically for the built-in **Simulation Portal**.
+
+This ensures you can demo the **Simulation Mode** out-of-the-box without setting any passwords, while being 100% ready for "Real Work" on production websites.
+
 ### 3. "Real Work" Verification & Portal URLs
 Once deployed, the dashboard's "Live Agent Mode" box allows you to specify the target portal:
 
