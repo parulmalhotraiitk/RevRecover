@@ -109,6 +109,23 @@ const recoveredRevenue = ref(43250);
 const hoursSaved = ref(128);
 const publicPortalUrl = ref("");
 const isDark = ref(true);
+const activeTab = ref("queue"); // "queue" or "history"
+
+const handleTabSwitch = (tab) => {
+  activeTab.value = tab;
+  selectedClaim.value = null; // Clear selection to keep UI clean during audit
+};
+
+const RARC_MAP = {
+  "Code 197": "Missing Prior Authorization. This service requires medical necessity review before performance.",
+  "Code 50": "Medical Necessity. The documentation provided does not support the intensity of service.",
+  "Code 18": "Duplicate Claim. Our records show an identical service was already processed or paid.",
+  "Code 114": "Experimental/Investigational. The treatment is not yet FDA approved for this specific diagnosis.",
+  "Code 96": "Non-Covered Service. This specific procedure is excluded from the patient's benefits package.",
+  "Code 16": "Lack of Documentation. Requires additional clinical charts or operative notes for adjudication.",
+  "Code 130": "Step Therapy Required. Patient must try and fail lower-cost alternatives before this treatment.",
+  "Code 22": "Co-ordination of Benefits. Requires the Primary EOB to determine secondary liability."
+};
 
 // Persistence Logic
 const saveState = () => {
@@ -230,6 +247,7 @@ const handleRunAgent = async () => {
                 recoveredRevenue.value += parseFloat(amountStr);
                 hoursSaved.value += 1.5;
                 selectedClaim.value.status = "Appealing";
+                selectedClaim.value.completedAt = new Date().toLocaleString();
                 saveState();
             } else if (checkData.status === 'failed') {
                 isDone = true;
@@ -353,11 +371,27 @@ const toggleFaq = (index) => {
         </div>
       </div>
 
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center justify-between mb-2">
         <div>
-          <h1 :class="['text-2xl font-bold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">Actionable Denials Queue</h1>
+          <h1 :class="['text-2xl font-bold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">Revenue Recovery Workspace</h1>
           <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">Identifying high-value claims ready for autonomous appeal generation.</p>
         </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="flex items-center gap-1 mb-6 p-1 rounded-xl w-fit transition-colors duration-300" :class="isDark ? 'bg-[#111827] border border-[#1E293B]' : 'bg-slate-200/50 border border-slate-200'">
+        <button 
+          @click="handleTabSwitch('queue')"
+          :class="['px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300', activeTab === 'queue' ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white text-blue-600 shadow-sm') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')]"
+        >
+          Denials Queue
+        </button>
+        <button 
+          @click="handleTabSwitch('history')"
+          :class="['px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300', activeTab === 'history' ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white text-blue-600 shadow-sm') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')]"
+        >
+          Audit History
+        </button>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -365,11 +399,11 @@ const toggleFaq = (index) => {
         <!-- Left Column: Claims List -->
         <div class="lg:col-span-2 flex flex-col gap-4">
           <div 
-            v-for="claim in claims" 
+            v-for="claim in claims.filter(c => activeTab === 'history' ? c.status === 'Appealing' : c.status === 'Denied')" 
             :key="claim.id"
             @click="selectClaim(claim)"
             :class="[
-              'border rounded-2xl p-5 cursor-pointer transition-all duration-300',
+              'border rounded-2xl p-5 cursor-pointer transition-all duration-300 relative group overflow-hidden',
               selectedClaim?.id === claim.id 
                 ? (isDark ? 'border-[#3B82F6] ring-1 ring-[#3B82F6] shadow-[0_0_20px_rgba(59,130,246,0.15)] bg-gradient-to-r from-[#111827] to-[#1E3A8A]/10' : 'border-[#3B82F6] ring-1 ring-[#3B82F6] bg-blue-50/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]') 
                 : (isDark ? 'border-[#1E293B] bg-[#111827] hover:border-slate-600 hover:bg-[#1E293B]/50' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md')
@@ -385,7 +419,7 @@ const toggleFaq = (index) => {
                   <div :class="['flex items-center gap-2 text-xs mt-0.5 transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">
                     <span>ID: {{ claim.id }}</span>
                     <span>•</span>
-                    <span>{{ claim.payer }}</span>
+                    <span :class="['px-1.5 py-0.5 rounded font-bold transition-all duration-300', isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700']">{{ claim.payer }}</span>
                   </div>
                 </div>
               </div>
@@ -397,20 +431,43 @@ const toggleFaq = (index) => {
               </div>
             </div>
 
-            <div :class="['p-3 rounded-xl border flex items-start gap-2 transition-colors duration-300', isDark ? 'bg-[#0A0C10] border-[#1E293B]' : 'bg-slate-50 border-slate-100']">
+            <div :class="['p-3 rounded-xl border flex items-start gap-2 transition-colors duration-300 group/rarc relative', isDark ? 'bg-[#0A0C10] border-[#1E293B]' : 'bg-slate-50 border-slate-100']">
                <FileText class="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
-               <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-300' : 'text-slate-600']"><span :class="['font-semibold transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">RARC Code:</span> {{ claim.denialReason }}</p>
+               <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-300' : 'text-slate-600']">
+                 <span :class="['font-semibold transition-colors duration-300 pointer-events-auto cursor-help decoration-blue-500/30 underline underline-offset-4', isDark ? 'text-slate-400' : 'text-slate-500']">RARC Code:</span> 
+                 {{ claim.denialReason }}
+               </p>
+               
+               <!-- RARC Tooltip -->
+               <div :class="['absolute bottom-full left-0 mb-2 w-64 p-3 rounded-lg border shadow-xl opacity-0 invisible group-hover/rarc:opacity-100 group-hover/rarc:visible transition-all duration-300 z-10 text-xs leading-relaxed', isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-slate-200/50']">
+                 <div class="font-bold mb-1 text-blue-400 uppercase tracking-wider">Intelligence Brief:</div>
+                 {{ RARC_MAP[claim.denialReason.split('(')[1].replace(')', '')] || 'Electronic Remittance Advice code requiring specific clinical justification.' }}
+                 <div :class="['mt-2 pt-2 border-t font-medium italic', isDark ? 'border-slate-700 text-slate-500' : 'border-slate-100 text-slate-400']">
+                   TinyFish agent trained on this specific RARC pattern.
+                 </div>
+               </div>
             </div>
             
             <div class="mt-4 flex items-center justify-between text-xs font-medium">
-               <span :class="['flex items-center gap-1 transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">
+               <span v-if="activeTab === 'queue'" :class="['flex items-center gap-1 transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">
                  <Clock class="w-3.5 h-3.5" />
                  Deadline: {{ claim.daysToAppeal }} days left
+               </span>
+               <span v-else :class="['flex items-center gap-1 transition-colors duration-300', isDark ? 'text-emerald-500' : 'text-emerald-600']">
+                 <CheckCircle class="w-3.5 h-3.5" />
+                 Filed on {{ claim.completedAt }}
                </span>
                <span :class="['flex items-center gap-1 transition-colors duration-300', isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700']">
                  View Adjudication Context <ChevronRight class="w-3.5 h-3.5" />
                </span>
             </div>
+          </div>
+          
+          <!-- Empty State for History -->
+          <div v-if="activeTab === 'history' && !claims.some(c => c.status === 'Appealing')" :class="['border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-300', isDark ? 'border-[#1E293B] bg-[#111827]/50' : 'border-slate-200 bg-white']">
+             <Activity :class="['w-12 h-12 mx-auto mb-4 transition-colors duration-300', isDark ? 'text-slate-700' : 'text-slate-300']" />
+             <h3 :class="['text-lg font-bold mb-2', isDark ? 'text-slate-400' : 'text-slate-900']">No History Yet</h3>
+             <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">Successful appeals filed by TinyFish agents will appear here for audit review.</p>
           </div>
         </div>
 
