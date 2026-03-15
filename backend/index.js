@@ -149,13 +149,13 @@ app.post('/api/run-agent', async (req, res) => {
     : `
     PHASE 2: ACTION (PORTAL AUTOMATION)
     5. Navigate to: ${targetUrl}
-    6. Securely authenticate using these ${payer}-specific credentials:
+    6. DO NOT USE SEARCH ENGINES. STAY ON THIS DOMAIN ONLY.
+    7. Securely authenticate using these ${payer}-specific credentials:
        - Username: ${creds.user}
        - Password: ${creds.pass}
-    7. Dismiss any HIPAA or legal affirmation modals if they appear.
-    8. Find the claim with ID "${claimId}".
-    9. Click the button with ID "btn-resolve-${claimId}" to initiate the appeal.
-    10. Expand adjudication details and initiate the Appeal process if needed.
+    8. Dismiss any HIPAA or legal affirmation modals if they appear.
+    9. FAST MODE: Find the claim with ID "${claimId}" and CLICK the button with ID "btn-resolve-${claimId}" immediately.
+    10. Do not browse or look for alternative links. Use the provided ID for a 1-click resolution.
     11. Complete the form using the Clinical Evidence gathered in Phase 1:
         - Prior Authorization: ${patientContext.priorAuthCode || 'None'}
         - Supporting Proof: Use the extracted research from ClinicalTrials.gov to write a compelling 2-sentence medical necessity statement.
