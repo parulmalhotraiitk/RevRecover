@@ -160,6 +160,16 @@ const activeCredentialKey = computed(() => {
   return `PAYER_${payer}`;
 });
 
+const formattedAppealContent = computed(() => {
+  if (!selectedClaim.value || !selectedClaim.value.appealContent) return null;
+  try {
+    // Attempt to parse if it's a JSON string
+    return JSON.parse(selectedClaim.value.appealContent);
+  } catch (e) {
+    return null;
+  }
+});
+
 // Persistence Logic
 const saveState = () => {
   const state = {
@@ -554,8 +564,52 @@ const toggleFaq = (index) => {
               <!-- Appeal Content Audit View (The "Magic" Revealed) -->
               <div v-if="selectedClaim.status === 'Appealing'" :class="['pt-4 border-t transition-colors duration-300', isDark ? 'border-[#1E293B]' : 'border-slate-100']">
                 <label :class="['text-xs font-semibold uppercase tracking-wider transition-colors duration-300 mb-2 block', isDark ? 'text-blue-400' : 'text-blue-600']">Generated Appeal Argument</label>
-                <div :class="['p-4 rounded-xl text-sm leading-relaxed border font-serif italic transition-colors duration-300', isDark ? 'bg-[#0A0C10] border-[#1E293B] text-slate-300' : 'bg-blue-50/30 border-blue-100 text-slate-700']">
-                  "{{ selectedClaim.appealContent || 'Retrieving clinical justification from audit trace...' }}"
+                <div :class="['p-4 rounded-xl text-sm leading-relaxed border transition-colors duration-300', isDark ? 'bg-[#0A0C10] border-[#1E293B] text-slate-300' : 'bg-blue-50/30 border-blue-100 text-slate-700']">
+                  <!-- Structured JSON View -->
+                  <div v-if="formattedAppealContent" class="space-y-4 font-sans not-italic">
+                    <!-- Authorization Status -->
+                    <div v-if="formattedAppealContent.phase2_authorization" class="border-b border-blue-500/10 pb-3">
+                      <div class="flex items-center gap-2 mb-2">
+                        <CheckCircle class="w-3.5 h-3.5 text-emerald-400" />
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Authorization Logic Confirmation</span>
+                      </div>
+                      <p class="text-[11px] leading-relaxed opacity-90">{{ formattedAppealContent.phase2_authorization.overall_status }}</p>
+                      <ul class="mt-2 space-y-1.5">
+                        <li v-for="step in formattedAppealContent.phase2_authorization.steps" :key="step.step" class="text-[10px] flex items-start gap-2">
+                          <span class="text-blue-400 font-bold min-w-[12px]">{{ step.step }}.</span>
+                          <span><b class="text-slate-100">{{ step.name }}:</b> {{ step.details }}</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <!-- Clinical Data -->
+                    <div v-if="formattedAppealContent.phase1_clinical_research_data">
+                      <div class="flex items-center gap-2 mb-2">
+                        <Activity class="w-3.5 h-3.5 text-blue-400" />
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400">Extracted Clinical Evidence (ClinicalTrials.gov)</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                          <p class="text-[8px] uppercase text-slate-500 font-bold">Protocol ID</p>
+                          <p class="text-[10px] font-mono text-blue-300">{{ formattedAppealContent.phase1_clinical_research_data.study_nct }}</p>
+                        </div>
+                        <div class="p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                          <p class="text-[8px] uppercase text-slate-500 font-bold">Research Query</p>
+                          <p class="text-[10px] text-slate-300">{{ formattedAppealContent.phase1_clinical_research_data.search_query }}</p>
+                        </div>
+                      </div>
+                      <ul class="space-y-2">
+                        <li v-for="point in formattedAppealContent.phase1_clinical_research_data.research_data_points" :key="point.id" class="text-[11px] text-slate-400 leading-normal">
+                          • {{ point.description }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Fallback Text View -->
+                  <div v-else class="font-serif italic">
+                    "{{ selectedClaim.appealContent || 'Retrieving clinical justification from audit trace...' }}"
+                  </div>
                 </div>
                 <div class="mt-3 flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
                   <Zap class="w-3 h-3 text-amber-400" />
