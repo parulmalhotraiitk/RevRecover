@@ -114,16 +114,19 @@ STEP 2 - CMS AUTHORIZATION:
 - DONE when URL changes or success message appears`;
   } else if (isInternalPortal) {
     actionPhase = `
-STEP 2 - APPEAL SUBMISSION (use element IDs exactly as given):
+STEP 2 - APPEAL SUBMISSION (use element IDs exactly as listed, in order):
 - Go to: ${targetUrl}
+- Wait for the login form to appear
 - Type "${creds.user}" into #username
 - Type "${creds.pass}" into #password
-- Click #login-btn
-- Click #drill-down-${claimId}
-- Click #open-appeal-btn
-- In #appeal-reason-select choose "Medical Necessity Documentation Attached"
-- In #appeal-notes-area type: "Medical necessity confirmed for ${claimId}. Auth: ${patientContext.priorAuthCode || 'N/A'}. Requesting immediate reversal."
-- Click #submit-appeal-btn
+- Click #login-btn and wait 2 seconds for the page to load
+- A HIPAA modal will appear. Click the button with id="agree-hipaa" to dismiss it
+- Wait for the claims table to be visible
+- Click the button with id="drill-down-${claimId}"
+- Click the button with id="open-appeal-btn"
+- Select "Medical Necessity Documentation Attached" in the element with id="appeal-reason-select"
+- Type "Medical necessity confirmed for ${claimId}. Auth Ref: ${patientContext.priorAuthCode || 'N/A'}. Requesting immediate reversal of denial." into the element with id="appeal-notes-area"
+- Click the button with id="submit-appeal-btn"
 - DONE`;
   } else {
     actionPhase = `
@@ -144,13 +147,37 @@ ${actionPhase}`.trim();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED: Build target URL
+// Auto-detects the App Runner public URL from the incoming request
+// so TinyFish (cloud-hosted) can reach the portal instead of localhost
 // ─────────────────────────────────────────────────────────────────────────────
-function buildTargetUrl(publicPortalUrl) {
-  let targetUrl = publicPortalUrl || process.env.MOCK_PORTAL_URL || 'http://localhost:5173';
-  if (targetUrl.includes('awsapprunner.com') && !targetUrl.includes('/portal')) {
-    targetUrl = targetUrl.endsWith('/') ? `${targetUrl}portal` : `${targetUrl}/portal`;
+function buildTargetUrl(publicPortalUrl, req) {
+  if (publicPortalUrl && publicPortalUrl.trim().length > 0) {
+    // User explicitly provided a URL (e.g. ngrok tunnel)
+    let url = publicPortalUrl.trim();
+    if (url.includes('awsapprunner.com') && !url.includes('/portal')) {
+      url = url.endsWith('/') ? `${url}portal` : `${url}/portal`;
+    }
+    return url;
   }
-  return targetUrl;
+
+  // Auto-detect the App Runner URL from request headers
+  const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+
+  if (host && host.includes('awsapprunner.com')) {
+    const base = `${proto}://${host}`;
+    const portalUrl = `${base}/portal`;
+    console.log(`🔍 Auto-detected App Runner portal URL: ${portalUrl}`);
+    return portalUrl;
+  }
+
+  // Fallback to env var or localhost (dev only)
+  let fallback = process.env.MOCK_PORTAL_URL || 'http://localhost:5173';
+  if (fallback.includes('awsapprunner.com') && !fallback.includes('/portal')) {
+    fallback = fallback.endsWith('/') ? `${fallback}portal` : `${fallback}/portal`;
+  }
+  console.warn(`⚠️  Using fallback portal URL: ${fallback}. Set MOCK_PORTAL_URL env var on App Runner if this is wrong.`);
+  return fallback;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,7 +198,7 @@ app.post('/api/run-agent', async (req, res) => {
     return res.status(500).json({ success: false, message: 'TinyFish API Key not configured.' });
   }
 
-  const targetUrl = buildTargetUrl(publicPortalUrl);
+  const targetUrl = buildTargetUrl(publicPortalUrl, req);
   const getPortalCredentials = (payerName) => {
     let normalized = payerName.split(' ')[0].toUpperCase();
     if (normalized === 'MEDICARE' || normalized === 'CMS') normalized = 'BLUEBUTTON';

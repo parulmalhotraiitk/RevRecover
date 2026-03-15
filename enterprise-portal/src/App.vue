@@ -38,18 +38,14 @@ const isLoggingIn = ref(false);
 const handleLogin = (e) => {
   e.preventDefault();
   isLoggingIn.value = true;
-  
-  // Simulate network delay for "WOW" effect
-  setTimeout(() => {
-    // For demo purposes, we accept any non-empty input
-    if (username.value.length > 0 && password.value.length > 0) {
-      isLoggedIn.value = true;
-      currentScreen.value = "dashboard";
-    } else {
-      loginError.value = true;
-    }
-    isLoggingIn.value = false;
-  }, 1200);
+  // No artificial delay — agent waits for DOM change, not a timer
+  if (username.value.length > 0 && password.value.length > 0) {
+    isLoggedIn.value = true;
+    currentScreen.value = "dashboard";
+  } else {
+    loginError.value = true;
+  }
+  isLoggingIn.value = false;
 }
 
 // Mock Appeal Form State
