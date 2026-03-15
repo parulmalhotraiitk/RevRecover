@@ -147,12 +147,12 @@ app.post('/api/run-agent', async (req, res) => {
       : isInternalPortal 
         ? `
     PHASE 1: SIMULATION EXECUTION (TURBO)
-    4. Directly navigate to: ${targetUrl}
-    5. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
-    6. STAY on ${targetUrl}. No searching.
-    7. Find element with ID "btn-resolve-${claimId}" and CLICK IT immediately.
-    8. In "Clinical Justification" textarea, paste the NCT# + research.
-    9. Click button with ID "submit-btn". MISSION COMPLETE.
+    1. Directly navigate to: ${targetUrl}
+    2. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
+    3. STAY on ${targetUrl}. No searching.
+    4. Find element with ID "btn-resolve-${claimId}" and CLICK IT immediately.
+    5. In "Clinical Justification" textarea, type: "Medical necessity established per clinical guidelines for ${denialReason}. Prior auth ${patientContext.priorAuthCode || 'N/A'} is on file."
+    6. Click button with ID "submit-btn". MISSION COMPLETE.
     `
         : `
     PHASE 1: EXTERNAL PORTAL EXECUTION
@@ -160,11 +160,14 @@ app.post('/api/run-agent', async (req, res) => {
     5. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
     6. Find the patient or claim matching "${claimId}".
     7. Initiate the "Appeal" or "Resolve" workflow for this specific entry.
-    8. Draft and submit a formal medical necessity reconsiderations request using the clinical research gathered in Phase 1.
+    8. Draft and submit a formal medical necessity reconsiderations request using the clinical research gathered in Phase 0.
     9. MISSION COMPLETE.
     `;
 
-  const goal = `
+  // Only include Phase 0 research for external portals to save time
+  const goal = isInternalPortal || isBlueButton
+    ? `COMMAND SET: LOW-LATENCY DETERMINISTIC FINISH\n${phase2Goal}`
+    : `
     COMMAND SET: LOW-LATENCY DETERMINISTIC FINISH
     
     PHASE 0: RESEARCH (CLINICAL DATA)

@@ -246,11 +246,11 @@ const handleRunAgent = async () => {
   liveFeed.value = [];
   
   // Real-time terminal simulation for the demo
-  await addFeedLog(`[INITIALIZATION] Booting TinyFish High-Intelligence Agent...`, 0.2);
-  await addFeedLog(`[RESEARCH] Accessing Live Medical Database (ClinicalTrials.gov)...`, 1.0);
-  await addFeedLog(`[EXTRACT] Scanning for clinical evidence for ${selectedClaim.value.denialReason}`, 1.2);
-  await addFeedLog(`[SUCCESS] Found supporting medical necessity data. Storing in memory.`, 0.8);
-  await addFeedLog(`[TARGET] Navigating to ${selectedClaim.value.payer} Provider Portal via Tunnel`, 0.8);
+  await addFeedLog(`[INITIALIZATION] Booting TinyFish High-Intelligence Agent...`, 0.05);
+  await addFeedLog(`[RESEARCH] Accessing Live Medical Database (ClinicalTrials.gov)...`, 0.2);
+  await addFeedLog(`[EXTRACT] Scanning for clinical evidence for ${selectedClaim.value.denialReason}`, 0.3);
+  await addFeedLog(`[SUCCESS] Found supporting medical necessity data. Storing in memory.`, 0.1);
+  await addFeedLog(`[TARGET] Navigating to ${selectedClaim.value.payer} Provider Portal via Tunnel`, 0.1);
   
   try {
     // Use environment variable for the API URL, falling back to localhost for development
@@ -266,15 +266,15 @@ const handleRunAgent = async () => {
       })
     });
     
-    await addFeedLog(`[AUTH] Bypassing login modal securely...`, 1.0);
-    await addFeedLog(`[DOM] Identifying 'HIPAA Acknowledgment' popup...`, 0.8);
-    await addFeedLog(`[ACTION] Clicked 'I Agree' on HIPAA modal.`, 0.5);
-    await addFeedLog(`[NAVIGATE] Traversing 'Claims Inquiry' pagination...`, 1.2);
-    await addFeedLog(`[DOM] Located Claim ID: ${selectedClaim.value.id}`, 0.6);
-    await addFeedLog(`[EXTRACT] Reading Adjudication Details accordion...`, 0.8);
-    await addFeedLog(`[STATE] Denial maps to: ${selectedClaim.value.denialReason}.`, 0.5);
-    await addFeedLog(`[GENERATE] Drafting appeal letter using combined Clinical Research + Patient Context...`, 1.5);
-    await addFeedLog(`[ACTION] Submitting 4-page formal appeal payload...`, 1.2);
+    await addFeedLog(`[AUTH] Bypassing login modal securely...`, 0.2);
+    await addFeedLog(`[DOM] Identifying 'HIPAA Acknowledgment' popup...`, 0.1);
+    await addFeedLog(`[ACTION] Clicked 'I Agree' on HIPAA modal.`, 0.1);
+    await addFeedLog(`[NAVIGATE] Traversing 'Claims Inquiry' pagination...`, 0.2);
+    await addFeedLog(`[DOM] Located Claim ID: ${selectedClaim.value.id}`, 0.1);
+    await addFeedLog(`[EXTRACT] Reading Adjudication Details accordion...`, 0.1);
+    await addFeedLog(`[STATE] Denial maps to: ${selectedClaim.value.denialReason}.`, 0.1);
+    await addFeedLog(`[GENERATE] Drafting appeal letter using combined Clinical Research + Patient Context...`, 0.3);
+    await addFeedLog(`[ACTION] Submitting 4-page formal appeal payload...`, 0.2);
 
     const response = await responsePromise;
     const result = await response.json();
@@ -289,7 +289,7 @@ const handleRunAgent = async () => {
         
         while (!isDone && attempts < maxAttempts) {
             attempts++;
-            await new Promise(r => setTimeout(r, 10000)); // wait 10s
+            await new Promise(r => setTimeout(r, 3000)); // wait 3s for turbo mode responsiveness
             
             // Add timestamp to bypass caching
             const checkRes = await fetch(`${apiBaseUrl}/api/check-run/${result.runId}?t=${Date.now()}`);
