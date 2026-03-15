@@ -131,24 +131,48 @@ app.post('/api/run-agent', async (req, res) => {
   // Refine the goal for the Blue Button Sandbox to prevent generic redirects
   const isBlueButton = payer.toUpperCase().includes("MEDICARE") || payer.toUpperCase().includes("CMS");
   
-  // Pivot logic: For Blue Button, we don't "file an appeal", we "authorize access"
+  // Detect if target is our internal simulation portal
+  const isInternalPortal = targetUrl.includes('localhost') || targetUrl.includes('awsapprunner.com');
+
+  // Pivot logic: Adapt instructions based on portal "Tier"
+  const phase2Goal = isBlueButton 
+      ? `
+    PHASE 1: AUTHENTICATION
+    4. Directly navigate to: ${targetUrl}
+    5. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
+    6. STAY on ${targetUrl}. Do not follow links to medicare.gov.
+    7. Look for EXACT text "Connect", "Authorize", or "Allow" and click it.
+    8. Once URL changes or Success seen, MISSION COMPLETE.
+    ` 
+      : isInternalPortal 
+        ? `
+    PHASE 1: SIMULATION EXECUTION (TURBO)
+    4. Directly navigate to: ${targetUrl}
+    5. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
+    6. STAY on ${targetUrl}. No searching.
+    7. Find element with ID "btn-resolve-${claimId}" and CLICK IT immediately.
+    8. In "Clinical Justification" textarea, paste the NCT# + research.
+    9. Click button with ID "submit-btn". MISSION COMPLETE.
+    `
+        : `
+    PHASE 1: EXTERNAL PORTAL EXECUTION
+    4. Directly navigate to: ${targetUrl}
+    5. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
+    6. Find the patient or claim matching "${claimId}".
+    7. Initiate the "Appeal" or "Resolve" workflow for this specific entry.
+    8. Draft and submit a formal medical necessity reconsiderations request using the clinical research gathered in Phase 1.
+    9. MISSION COMPLETE.
+    `;
+
   const goal = `
     COMMAND SET: LOW-LATENCY DETERMINISTIC FINISH
     
-    PHASE 1: RESEARCH (20 SECONDS MAX)
+    PHASE 0: RESEARCH (CLINICAL DATA)
     1. Directly navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
     2. Extract the first study ID (NCT#) and 1 technical sentence.
-    3. SAVE to memory and IMMEDIATELY proceed. DO NOT browse.
+    3. SAVE to memory and proceed.
     
-    PHASE 2: EXECUTION (30 SECONDS MAX)
-    4. Directly navigate to: ${targetUrl}
-    5. FORBIDDEN: Do not use DuckDuckGo, Google, or any search engine. 
-    6. STAY on ${targetUrl}.
-    7. Authenticate: User: ${creds.user} | Pass: ${creds.pass}
-    8. ${isBlueButton ? 'Look for EXACT text "Connect" or "Authorize" and click it.' : 'Find element with ID "btn-resolve-' + claimId + '" and CLICK it immediately.'}
-    9. If modal appears, click any button with text "Agree" or "Close".
-    10. ${isBlueButton ? 'Finish when URL changes.' : 'In the textarea with ID "appeal-text", paste the NCT# + research. Click button with ID "submit-btn".'}
-    11. MISSION COMPLETE.
+    ${phase2Goal}
   `;
 
   console.log(`\n🤖 Sending Goal to TinyFish API (Target: ${targetUrl})...`);
