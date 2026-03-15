@@ -82,11 +82,15 @@ For the agent to function in the cloud, you must configure **Environment Variabl
 | **Backend** | `MOCK_PORTAL_URL` | The public URL of your **Enterprise Portal** (provided by Amplify). |
 | **App** | `VITE_API_URL` | The public URL of your **Backend API**. |
 
-### 3. "Real Work" Verification
-Once deployed:
-1.  Open your **RevRecover App** (Amplify URL).
-2.  Paste your **Enterprise Portal URL** (Amplify URL) into the "Live Agent Mode" box.
-3.  Trigger the agent. It will autonomously navigate the public internet to [ClinicalTrials.gov](https://clinicaltrials.gov/) for research, and then login to your production-hosted **Enterprise Portal** to verify the claim.
+### 3. "Real Work" Verification & Portal URLs
+Once deployed, the dashboard's "Live Agent Mode" box allows you to specify the target portal:
+
+1.  **Dashboard Input (Right Side):** Paste your **Enterprise Portal URL** (Amplify URL) here. This is the primary way the agent knows where to perform the "Action" phase of the workflow.
+2.  **Default Logic (Priority):**
+    -   **Tier 1:** `MOCK_PORTAL_URL` Environment Variable (checks this first).
+    -   **Tier 2:** Dashboard Input URL (if Tier 1 is empty).
+    -   **Tier 3:** `http://localhost:5173` (Local fallback for dev only).
+3.  **Cross-Provider Flexibility:** While the prototype defaults to the "AetnaCare" aesthetic, the TinyFish agent is instructed based on the **selected Payer** (e.g., Aetna, United, Cigna). It will use the provided URL as its landing page and intelligently navigate to the specific provider's claim section using its session memory.
 
 ## 🔒 Security First: Protecting your Secrets
 
