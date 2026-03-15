@@ -122,6 +122,35 @@ grep -r "TF_" .
 ```
 *(If it returns only results in your local `.env` and `.env.example`, you are safe!)*
 
+## 🎭 The Agent's Personas
+RevRecover is designed to handle multiple roles within the healthcare ecosystem. During your demo, you can showcase these two distinct personas:
+
+### 1. The Billing Admin (Provider Portal)
+*   **Target:** Our built-in **Enterprise Portal** (`/portal`).
+*   **Credentials:** Defaults to `admin` / `password`.
+*   **The Story:** The agent acts as an employee of a hospital. It logs into the provider portal to check claim status, analyzes the denial, and submits a medical-necessity appeal based on real-time research from ClinicalTrials.gov.
+
+### 2. The Medicare Beneficiary (Patient Sandbox)
+*   **Target:** The official **CMS Blue Button 2.0 Sandbox**.
+*   **Credentials:** `BBUser00000` / `PW00000!` (configured via secure environment variables).
+*   **The Story:** The agent acts as the patient. It navigates the official US Government security infrastructure to "Authorize" RevRecover to access medical records. This proves the agent can handle the most secure, regulated medical sites in the United States.
+
+---
+
+## 🎖️ The "God Tier" Move: Live Medicare Demo
+To win the hackathon by showing the agent interacting with an **Official US Government Site**:
+
+1.  **Set Credentials in AWS:**
+    *   `PAYER_BLUEBUTTON_USER` = `BBUser00000`
+    *   `PAYER_BLUEBUTTON_PASS` = `PW00000!`
+2.  **Dashboard Setup:** 
+    *   Select a claim in the Dashboard.
+    *   In the **"Live Agent Mode"** box, paste the **CMS Authorization URL** (e.g., `https://sandbox.bluebutton.cms.gov/testclient/authorize-link-v2`).
+3.  **Execute:** Click **"Automate Appeal with Agent"**.
+4.  **Observe:** The TinyFish agent will traverse to the official CMS login, enter the credentials, and approve the authorization autonomously.
+
+---
+
 ## 💡 Why TinyFish?
 RevRecover utilizes the unique power of the **TinyFish Agentic Framework** to solve challenges that traditional automation (like Selenium or Puppeteer) can't touch:
 -   **Dynamic Research (Real Work):** The agent doesn't just click buttons; it visits live medical databases to find a "reason" to win the appeal.
