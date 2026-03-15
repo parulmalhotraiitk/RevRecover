@@ -15,9 +15,13 @@ app.get('/', (req, res) => {
 });
 
 // Health check route for deployment verification
-app.get('/api/health', (col, res) => {
+app.get('/api/health', (req, res) => {
+  console.log("Health check pinged");
   res.json({ status: 'active', service: 'RevRecover Agent Backend' });
 });
+
+// Helper for masking API keys in logs
+const mask = (key) => key ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : "MISSING";
 
 // Mock Patient Database to provide context to the Agent
 const patientDatabase = {
@@ -40,10 +44,11 @@ app.post('/api/run-agent', async (req, res) => {
 
   const patientContext = patientDatabase[claimId] || {};
   const apiKey = process.env.TINYFISH_API_KEY;
+  console.log(`Using credentials: [Key: ${mask(apiKey)}] [Portal: ${process.env.MOCK_PORTAL_URL || 'Using Request URL'}]`);
 
-  if (!apiKey || apiKey === 'your_api_key_here') {
-    console.error("❌ TinyFish API Key missing or invalid.");
-    return res.status(500).json({ success: false, message: "TinyFish API Key not configured in .env" });
+  if (!apiKey || apiKey.includes('your_api_key')) {
+    console.error("❌ TinyFish API Key missing or invalid in environment.");
+    return res.status(500).json({ success: false, message: "API Key Configuration Error. Check App Runner variables." });
   }
 
   // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
@@ -102,8 +107,8 @@ app.post('/api/run-agent', async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Infrastructure Error:", err.message);
-    res.status(500).json({ success: false, message: "Failed to connect to TinyFish API" });
+    console.error("❌ Infrastructure Error:", err);
+    res.status(500).json({ success: false, message: `Orchestration Error: ${err.message}` });
   }
 });
 

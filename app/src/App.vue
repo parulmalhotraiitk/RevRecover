@@ -103,6 +103,7 @@ const handleRunAgent = async () => {
     await addFeedLog(`[ACTION] Submitting 4-page formal appeal payload...`, 1.2);
 
     const response = await responsePromise;
+    const result = await response.json();
     
     if (response.ok) {
         await addFeedLog(`[SUCCESS] Tracking ID received. Appeal legally filed.`, 0.5);
@@ -114,13 +115,13 @@ const handleRunAgent = async () => {
         hoursSaved.value += 1.5;
         selectedClaim.value.status = "Appealing";
     } else {
-        await addFeedLog(`[ERROR] Agent run failed.`, 0);
+        await addFeedLog(`[ERROR] Backend Reject: ${result.message || 'Unknown Failure'}`, 0);
         agentStatus.value = "idle";
     }
   } catch (err) {
       console.error("Failed to connect to orchestrator backend: ", err);
-      await addFeedLog(`[ERROR] Backend Offline. Simulated Fallback Complete.`, 0);
-      agentStatus.value = "success";
+      await addFeedLog(`[ERROR] Communication Error: Backend is unreachable or returned a crash.`, 0);
+      agentStatus.value = "idle";
   }
 }
 </script>
