@@ -8,6 +8,11 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Health check route for deployment verification
+app.get('/api/health', (col, res) => {
+  res.json({ status: 'active', service: 'RevRecover Agent Backend' });
+});
+
 // Mock Patient Database to provide context to the Agent
 const patientDatabase = {
   "CLM-992-81A": {
