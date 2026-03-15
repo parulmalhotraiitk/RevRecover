@@ -4,18 +4,6 @@ import { ShieldAlert, FileText, CheckCircle, Clock, UploadCloud, ChevronRight, A
 
 const INITIAL_CLAIMS = [
   {
-    id: "CLM-992-81A",
-    patient: "Eleanor Vance",
-    dob: "1942-05-12",
-    dateOfService: "2026-02-14",
-    amount: "$12,450.00",
-    payer: "Aetna Medicare",
-    status: "Denied",
-    denialReason: "Missing Prior Authorization (Code 197)",
-    urgency: "High",
-    daysToAppeal: 12
-  },
-  {
     id: "CLM-999-CMS",
     patient: "Ezio Auditore",
     dob: "1955-08-12",
@@ -24,6 +12,18 @@ const INITIAL_CLAIMS = [
     payer: "Medicare (CMS)",
     status: "Denied",
     denialReason: "Duplicate Claim (Code 18)",
+    urgency: "High",
+    daysToAppeal: 12
+  },
+  {
+    id: "CLM-992-81A",
+    patient: "Eleanor Vance",
+    dob: "1942-05-12",
+    dateOfService: "2026-02-14",
+    amount: "$12,450.00",
+    payer: "Aetna Medicare",
+    status: "Denied",
+    denialReason: "Missing Prior Authorization (Code 197)",
     urgency: "High",
     daysToAppeal: 12
   },
@@ -343,7 +343,7 @@ const toggleFaq = (index) => {
             <span :class="['font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r', isDark ? 'from-white to-slate-400' : 'from-slate-900 to-slate-600']">RevRecover</span>
             <div class="flex flex-col ml-2">
               <span :class="['text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors duration-300 w-fit', isDark ? 'bg-[#1E293B] text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200']">Powered by TinyFish AI</span>
-              <span class="text-[8px] font-bold text-slate-500 mt-1 uppercase tracking-tighter ml-1">Build: Mar 15, 08:02 PM</span>
+              <span class="text-[8px] font-bold text-slate-500 mt-1 uppercase tracking-tighter ml-1">Build: Mar 15, 08:06 PM</span>
             </div>
           </div>
           <div class="flex items-center gap-6">
