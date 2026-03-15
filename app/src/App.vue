@@ -286,13 +286,13 @@ const handleRunAgent = async () => {
                      <input 
                        v-model="publicPortalUrl"
                        type="text" 
-                       placeholder="Paste ngrok URL here (e.g. http://xyz.ngrok-free.app)"
+                       placeholder="Paste Enterprise Portal URL here"
                        class="w-full bg-[#0A0C10] border border-[#1E293B] rounded-xl py-2 px-3 text-xs text-slate-300 focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-600"
                      />
                      <Zap v-if="publicPortalUrl" class="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-amber-400 animate-pulse" />
                    </div>
                    <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">
-                     To fulfill the "Real Work" requirement, use <code class="text-slate-400">ngrok</code> to expose your mock portal securely so the TinyFish Cloud Agent can reach it.
+                     To fulfill "Real Work" verification, enter the live URL of your provisioned **Enterprise Portal**.
                    </p>
                  </div>
               </div>
