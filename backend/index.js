@@ -106,7 +106,9 @@ app.post('/api/run-agent', async (req, res) => {
 
     PHASE 2: ACTION (PORTAL AUTOMATION)
     5. Navigate to: ${targetUrl}
-    6. Securely authenticate using credentials (admin / password).
+    6. Securely authenticate using the following credentials:
+       - Username: ${process.env.PORTAL_USER || 'admin'}
+       - Password: ${process.env.PORTAL_PASS || 'password'}
     7. Dismiss any HIPAA or legal affirmation modals if they appear.
     8. Find the claim with ID "${claimId}".
     9. Expand adjudication details and initiate the Appeal process.
