@@ -138,8 +138,15 @@ const RARC_MAP = {
   "Code 96": "Non-Covered Service. This specific procedure is excluded from the patient's benefits package.",
   "Code 16": "Lack of Documentation. Requires additional clinical charts or operative notes for adjudication.",
   "Code 130": "Step Therapy Required. Patient must try and fail lower-cost alternatives before this treatment.",
-  "Code 22": "Co-ordination of Benefits. Requires the Primary EOB to determine secondary liability."
+  "Code 22": "Co-ordination of Benefits. Requires verification of primary insurance coverage before this claim can be adjudicated."
 };
+
+const activeCredentialKey = computed(() => {
+  if (!selectedClaim.value) return "NONE";
+  let payer = selectedClaim.value.payer.split(' ')[0].toUpperCase();
+  if (payer === "MEDICARE" || payer === "CMS") payer = "BLUEBUTTON";
+  return `PAYER_${payer}`;
+});
 
 // Persistence Logic
 const saveState = () => {
@@ -557,10 +564,19 @@ const toggleFaq = (index) => {
                   />
                   <Zap v-if="publicPortalUrl" class="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-amber-400 animate-pulse" />
                 </div>
-                <p :class="['text-[10px] mt-2 leading-relaxed transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">
-                  To fulfill "Real Work" verification, enter the live URL of your **Enterprise Portal**.
-                </p>
-              </div>
+                    <p :class="['text-[10px] mt-2 leading-relaxed transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">
+                      To fulfill "Real Work" verification, enter the live URL of your **Enterprise Portal**.
+                    </p>
+
+                    <!-- Credential Key Badge -->
+                    <div class="mt-4 flex items-center justify-between p-2 rounded-lg border border-dashed transition-colors duration-300" :class="isDark ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50 border-blue-100'">
+                      <div class="flex items-center gap-2">
+                        <ShieldCheck class="w-3 h-3 text-blue-500" />
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-blue-500">Security Vault Key</span>
+                      </div>
+                      <code class="text-[10px] font-mono font-bold" :class="isDark ? 'text-blue-300' : 'text-blue-700'">{{ activeCredentialKey }}</code>
+                    </div>
+                  </div>
             </div>
 
               <!-- Live Agent Feed (Terminal) -->
