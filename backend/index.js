@@ -102,11 +102,11 @@ app.post('/api/run-agent', async (req, res) => {
       });
     }
 
-    console.log("✅ TinyFish Agent Completed successfully:", data.run_id);
+    console.log("✅ TinyFish Agent started successfully:", data.run_id);
     res.json({ 
       success: true, 
-      message: "Agent completed workflow via TinyFish API.",
-      trackingId: data.run_id || "TF-RUN-SUCCESS"
+      message: "Agent workflow initiated in cloud.",
+      runId: data.run_id
     });
 
   } catch (err) {
@@ -116,6 +116,30 @@ app.post('/api/run-agent', async (req, res) => {
       message: `Backend Failure: ${err.message}`,
       stack: err.stack 
     });
+  }
+});
+// Status polling endpoint to check TinyFish run state
+app.get('/api/check-run/:id', async (req, res) => {
+  const { id } = req.params;
+  const apiKey = process.env.TINYFISH_API_KEY;
+
+  try {
+    const response = await fetch(`https://agent.tinyfish.ai/v1/runs/${id}`, {
+      headers: { "X-API-Key": apiKey }
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ success: false, message: data.message });
+    }
+
+    res.json({ 
+      success: true, 
+      status: data.status, // e.g. "completed", "running", "failed"
+      result: data.result 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

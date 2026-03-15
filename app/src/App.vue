@@ -105,22 +105,44 @@ const handleRunAgent = async () => {
     const response = await responsePromise;
     const result = await response.json();
     
-    if (response.ok) {
-        await addFeedLog(`[SUCCESS] Tracking ID received. Appeal legally filed.`, 0.5);
-        agentStatus.value = "success";
+    if (response.ok && result.runId) {
+        await addFeedLog(`[CLOUD] Agent session stable. Starting background polling...`, 0.5);
         
-        // Update analytics dynamically
-        const amountStr = selectedClaim.value.amount.replace(/[^0-9.-]+/g,"");
-        recoveredRevenue.value += parseFloat(amountStr);
-        hoursSaved.value += 1.5;
-        selectedClaim.value.status = "Appealing";
+        // Polling loop to wait for completion
+        let isDone = false;
+        let attempts = 0;
+        const maxAttempts = 30; // 5 minutes max (10s intervals)
+        
+        while (!isDone && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(r => setTimeout(r, 10000)); // wait 10s
+            
+            const checkRes = await fetch(`${apiBaseUrl}/api/check-run/${result.runId}`);
+            const checkData = await checkRes.json();
+            
+            if (checkData.status === 'completed') {
+                isDone = true;
+                await addFeedLog(`[SUCCESS] Cloud Agent finished work. Syncing state...`, 0.5);
+                agentStatus.value = "success";
+                const amountStr = selectedClaim.value.amount.replace(/[^0-9.-]+/g,"");
+                recoveredRevenue.value += parseFloat(amountStr);
+                hoursSaved.value += 1.5;
+                selectedClaim.value.status = "Appealing";
+            } else if (checkData.status === 'failed') {
+                isDone = true;
+                await addFeedLog(`[ERROR] Agent failed in the cloud.`, 0);
+                agentStatus.value = "error";
+            } else {
+                await addFeedLog(`[POLL] Agent working on clinical evidence... (Attempt ${attempts})`, 0);
+            }
+        }
     } else {
         await addFeedLog(`[ERROR] Backend Reject: ${result.message || 'Unknown Failure'}`, 0);
         agentStatus.value = "error";
     }
   } catch (err) {
       console.error("Failed to connect to orchestrator backend: ", err);
-      await addFeedLog(`[ERROR] Communication Error: Backend is unreachable or returned a crash.`, 0);
+      await addFeedLog(`[ERROR] Communication Error: Cloud connection unstable.`, 0);
       agentStatus.value = "error";
   }
 }
