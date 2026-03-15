@@ -95,54 +95,102 @@ function buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, pati
   const isBlueButton = payer.toUpperCase().includes('MEDICARE') || payer.toUpperCase().includes('CMS');
   const isInternalPortal = targetUrl.includes('localhost') || targetUrl.includes('awsapprunner.com');
 
-  const persona = `You are RevRecover, an expert autonomous claims adjudication agent.
-Rules: only use element IDs when provided (#id), minimize clicks, do NOT open new tabs or search engines.`;
+  // KEY INSIGHT: TinyFish already navigates to targetUrl before running this goal.
+  // Do NOT instruct the agent to "go to URL" - it starts there. Go straight to actions.
 
-  const researchPhase = (isInternalPortal || isBlueButton || turbo) ? '' : `
-STEP 1 - CLINICAL RESEARCH:
-- Go to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
-- Extract: primary NCT# and one clinical outcome sentence
-- Store in memory and continue`;
-
-  let actionPhase;
   if (isBlueButton) {
-    actionPhase = `
-STEP 2 - CMS AUTHORIZATION:
-- Go to: ${targetUrl}
-- Login: username="${creds.user}", password="${creds.pass}"
-- Find and click the "Connect", "Authorize", or "Allow" button
-- DONE when URL changes or success message appears`;
-  } else if (isInternalPortal) {
-    actionPhase = `
-STEP 2 - APPEAL SUBMISSION (use element IDs exactly as listed, in order):
-- Go to: ${targetUrl}
-- Wait for the login form to appear
-- Type "${creds.user}" into #username
-- Type "${creds.pass}" into #password
-- Click #login-btn and wait 2 seconds for the page to load
-- A HIPAA modal will appear. Click the button with id="agree-hipaa" to dismiss it
-- Wait for the claims table to be visible
-- Click the button with id="drill-down-${claimId}"
-- Click the button with id="open-appeal-btn"
-- Select "Medical Necessity Documentation Attached" in the element with id="appeal-reason-select"
-- Type "Medical necessity confirmed for ${claimId}. Auth Ref: ${patientContext.priorAuthCode || 'N/A'}. Requesting immediate reversal of denial." into the element with id="appeal-notes-area"
-- Click the button with id="submit-appeal-btn"
-- DONE`;
-  } else {
-    actionPhase = `
-STEP 2 - EXTERNAL PORTAL APPEAL:
-- Go to: ${targetUrl}
-- Login: username="${creds.user}", password="${creds.pass}"
-- Find claim "${claimId}" (search by ID first, then by patient name if not found)
-- Open the appeal or reconsideration workflow
-- Enter medical necessity justification using clinical evidence from Step 1
-- Submit the form
-- DONE`;
+    return `You are already on the CMS Blue Button authorization page.
+Task: Authorize the data connection for the RevRecover system.
+
+Step 1 - Check current state of the page. Look for a login form.
+Step 2 - If a login form is present:
+  - Type "${creds.user}" into the username/email field
+  - Type "${creds.pass}" into the password field
+  - Click the login/submit button
+  - Wait for the page to update after login
+Step 3 - Find a button or link labeled "Connect", "Authorize", or "Allow". Click it.
+Step 4 - Wait for a success indication (URL change or on-screen success message).
+Return: { "status": "authorized", "message": "<any text confirming success>" }`;
   }
 
-  return `${persona}
-${researchPhase}
-${actionPhase}`.trim();
+  if (isInternalPortal) {
+    return `You are already on the AetnaCare Provider Portal login page at ${targetUrl}.
+Task: Log in, dismiss the HIPAA modal, find claim ${claimId}, and submit a medical necessity appeal.
+IMPORTANT: Use ONLY the exact element IDs listed. Do not improvise or look for elements by text.
+
+STEP 1 — Login:
+- Find the login form. It is already visible on the current page.
+- Type "${creds.user}" into the input with id="username"
+- Type "${creds.pass}" into the input with id="password"
+- Click the button with id="login-btn"
+- Pause and wait for the page to fully transition (a new screen or overlay will appear)
+
+STEP 2 — HIPAA Acknowledgment Modal:
+- After login, a modal dialog WILL appear. It is a legal/compliance popup.
+- DO NOT try to skip it or click anywhere else first.
+- Click the button with id="agree-hipaa" to accept and dismiss it.
+- Wait until the modal is fully gone and the dashboard is visible behind it.
+
+STEP 3 — Locate the Claim:
+- The claims table is now visible on the dashboard.
+- Find the row for claim ${claimId}.
+- Click the button with id="drill-down-${claimId}"
+- Wait for the claim detail page to finish loading.
+
+STEP 4 — Open the Appeal Form:
+- Click the button with id="open-appeal-btn"
+- Wait for the appeal form panel or modal to appear.
+
+STEP 5 — Complete the Appeal Form:
+- In the dropdown/select with id="appeal-reason-select", choose the option "Medical Necessity Documentation Attached"
+- In the textarea with id="appeal-notes-area", type exactly: "Clinical medical necessity confirmed for claim ${claimId}. Authorization reference: ${patientContext.priorAuthCode || 'AUTH-PENDING'}. Services rendered are consistent with patient diagnosis and established clinical criteria. Requesting immediate reversal of denial."
+- Click the button with id="submit-appeal-btn"
+- Wait for the success confirmation screen to appear.
+
+STEP 6 — Return Result:
+Return JSON: { "status": "appeal_submitted", "claimId": "${claimId}", "message": "<any confirmation text visible on screen after submission>" }`;
+  }
+
+  // External real payer portal
+  const researchStep = turbo ? '' : `
+
+STEP 1 — Clinical Evidence Research (do this first, before logging in):
+- Navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
+- Locate the first relevant clinical trial in the search results.
+- Extract and memorize: (a) the NCT# identifier, (b) one key clinical outcome sentence.
+- After extracting, close the research tab or navigate back to the portal.`;
+
+  const s = turbo ? 1 : 2;
+
+  return `You are already on the ${payer} provider portal at ${targetUrl}.
+Task: Log in, find claim ${claimId}, and file a medical necessity appeal.${researchStep}
+
+STEP ${s} — Login:
+- The login page is currently visible.
+- Type "${creds.user}" into the username, NPI, or Provider ID field.
+- Type "${creds.pass}" into the password field.
+- Click the login or sign-in button.
+- Handle any popups (HIPAA acknowledgment, MFA prompts, terms of use) by accepting/agreeing.
+- Wait until the main portal dashboard or claims list loads.
+
+STEP ${s + 1} — Find Claim ${claimId}:
+- Look for a search bar, claims inquiry section, or remittance lookup.
+- Search for claim ID "${claimId}" directly.
+- If not found, filter or browse claims with status "Denied" and locate "${claimId}".
+- Click into the claim to open its detail view.
+
+STEP ${s + 2} — File Medical Necessity Appeal:
+- Find the "Appeal", "Request Reconsideration", "Dispute", or "Reopen" option for this claim.
+- Set the appeal reason/category to "Medical Necessity".
+- In the notes or justification field, type:
+  "${turbo
+    ? `Medical necessity is established for claim ${claimId}. Prior authorization ref: ${patientContext.priorAuthCode || 'N/A'}. Clinical criteria are fully met. Requesting immediate reversal of denial.`
+    : `Medical necessity is established for claim ${claimId}. Clinical evidence from trial [NCT from Step 1]: [evidence sentence from Step 1]. Prior authorization ref: ${patientContext.priorAuthCode || 'N/A'}. Requesting immediate reversal of denial.`}"
+- Submit the form.
+
+STEP ${s + 3} — Confirm Submission:
+- Wait for a confirmation number, reference ID, or on-screen success message.
+Return JSON: { "status": "appeal_submitted", "claimId": "${claimId}", "payer": "${payer}", "confirmation": "<confirmation number or message text>" }`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,15 +229,12 @@ function buildTargetUrl(publicPortalUrl, req) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/run-agent  →  SSE streaming endpoint (real-time events)
-//   Front-end connects with EventSource('/api/run-agent-stream')
-//   This endpoint just spawns the run and returns the runId immediately
+// POST /api/run-agent  →  Starts agent, returns runId for polling
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/run-agent', async (req, res) => {
   const { claimId, payer, denialReason, publicPortalUrl, turbo } = req.body;
 
   console.log(`\n🚀 [RUN-AGENT] claim=${claimId} payer=${payer} turbo=${turbo}`);
-  console.log(`Target: ${publicPortalUrl || 'Local Mode'}`);
 
   const patientContext = patientDatabase[claimId] || {};
   const apiKey = process.env.TINYFISH_API_KEY;
@@ -210,70 +255,38 @@ app.post('/api/run-agent', async (req, res) => {
   const creds = getPortalCredentials(payer);
   const goal = buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, patientContext });
 
-  console.log(`\n🎯 Goal sent to TinyFish (${turbo ? 'TURBO' : 'FULL'} mode, target: ${targetUrl})`);
+  console.log(`🎯 Target: ${targetUrl} | Mode: ${turbo ? 'TURBO' : 'FULL'}`);
   console.log('--- GOAL ---\n', goal, '\n--- END GOAL ---');
 
   try {
-    // ── Use SSE streaming endpoint for real-time event forwarding ──
-    const tfResponse = await fetch('https://agent.tinyfish.ai/v1/automation/run-sse', {
+    const tfResponse = await fetch('https://agent.tinyfish.ai/v1/automation/run-async', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
       body: JSON.stringify({ url: targetUrl, goal, browser_profile: 'stealth' })
     });
 
-    if (!tfResponse.ok) {
-      const errText = await tfResponse.text();
-      console.error('❌ TinyFish SSE start failed:', errText);
-      return res.status(tfResponse.status).json({ success: false, message: `TinyFish error: ${errText}` });
-    }
+    const data = await tfResponse.json();
 
-    // Set up SSE response headers so the browser can stream events
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.flushHeaders();
+    if (!tfResponse.ok) {
+      console.error('❌ TinyFish error:', data);
+      return res.status(tfResponse.status).json({
+        success: false,
+        message: data.message || data.detail || 'TinyFish Agent error.'
+      });
+    }
 
     agentSessionActive = true;
+    // Safety: reset after 10 minutes max
+    setTimeout(() => { agentSessionActive = false; }, 600000);
 
-    // Pipe every SSE chunk from TinyFish → our frontend
-    tfResponse.body.on('data', (chunk) => {
-      const text = chunk.toString();
-      // Forward raw SSE data lines as-is
-      res.write(text);
-      // Check for COMPLETE event to update portal state
-      if (text.includes('"type":"COMPLETE"') || text.includes('"status":"COMPLETED"') || text.includes('"status":"SUCCESS"')) {
-        agentSessionActive = false;
-        // Mark claim as Appealing in portal state
-        const claim = portalState.find(c => c.id === claimId);
-        if (claim) claim.status = 'Appealing';
-        console.log(`✅ TinyFish COMPLETE event received for claim ${claimId}`);
-      }
-    });
+    const runId = data.run_id || data.id;
+    console.log(`✅ Agent started. runId=${runId}`);
 
-    tfResponse.body.on('end', () => {
-      agentSessionActive = false;
-      res.write('data: {"type":"STREAM_END"}\n\n');
-      res.end();
-      console.log(`🏁 TinyFish SSE stream ended for claim ${claimId}`);
-    });
-
-    tfResponse.body.on('error', (err) => {
-      console.error('❌ Stream error:', err);
-      res.write(`data: {"type":"ERROR","message":"${err.message}"}\n\n`);
-      res.end();
-    });
-
-    req.on('close', () => {
-      console.log('Frontend disconnected from SSE stream.');
-      tfResponse.body.destroy();
-    });
+    res.json({ success: true, runId, message: 'Agent started successfully.' });
 
   } catch (err) {
-    console.error('❌ CRITICAL ORCHESTRATION ERROR:', err);
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: `Backend Failure: ${err.message}` });
-    }
+    console.error('❌ ORCHESTRATION ERROR:', err);
+    res.status(500).json({ success: false, message: `Backend error: ${err.message}` });
   }
 });
 // Status polling endpoint to check TinyFish run state

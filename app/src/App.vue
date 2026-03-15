@@ -242,21 +242,17 @@ const addFeedLog = (message, delay) => {
 
 const handleRunAgent = async () => {
   if (!selectedClaim.value) return;
-  
+
   agentStatus.value = "running";
   liveFeed.value = [];
-  
-  // Real-time terminal simulation for the demo
-  await addFeedLog(`[INITIALIZATION] Booting TinyFish High-Intelligence Agent...`, 0.05);
-  await addFeedLog(`[RESEARCH] Accessing Live Medical Database (ClinicalTrials.gov)...`, 0.2);
-  await addFeedLog(`[EXTRACT] Scanning for clinical evidence for ${selectedClaim.value.denialReason}`, 0.3);
-  await addFeedLog(`[SUCCESS] Found supporting medical necessity data. Storing in memory.`, 0.1);
-  await addFeedLog(`[TARGET] Navigating to ${selectedClaim.value.payer} Provider Portal via Tunnel`, 0.1);
-  
-  try {
-    const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-    // Stream the response directly — backend pipes TinyFish SSE events in real-time
+  await addFeedLog(`[INITIALIZATION] Booting TinyFish Agent...`, 0);
+  await addFeedLog(`[TARGET] Portal: ${publicPortalUrl.value || 'Auto (App Runner)'}`, 0);
+  await addFeedLog(`[MODE] ${isTurbo.value ? 'TURBO — skipping research phase' : 'FULL — clinical research enabled'}`, 0);
+
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+  try {
     const response = await fetch(`${apiBaseUrl}/api/run-agent`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -269,78 +265,60 @@ const handleRunAgent = async () => {
       })
     });
 
-    if (!response.ok || !response.body) {
-      const errData = await response.json().catch(() => ({}));
-      await addFeedLog(`[ERROR] Backend Reject: ${errData.message || 'Connection failed'}`, 0);
+    const result = await response.json();
+
+    if (!response.ok || !result.runId) {
+      await addFeedLog(`[ERROR] ${result.message || 'Failed to start agent'}`, 0);
       agentStatus.value = "error";
       return;
     }
 
-    await addFeedLog(`[CLOUD] Agent session live. Streaming events...`, 0.2);
+    await addFeedLog(`[CLOUD] Agent started. Run ID: ${result.runId}`, 0);
+    await addFeedLog(`[CLOUD] Navigating portal and executing appeal...`, 0);
 
-    // Read the SSE stream from the backend line by line
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    // Poll for completion — simple and reliable
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes max at 5s interval
     let isDone = false;
 
-    while (!isDone) {
-      const { value, done } = await reader.read();
-      if (done) break;
+    while (!isDone && attempts < maxAttempts) {
+      attempts++;
+      await new Promise(r => setTimeout(r, 5000));
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop(); // Keep last incomplete line in buffer
+      const checkRes = await fetch(`${apiBaseUrl}/api/check-run/${result.runId}?t=${Date.now()}`);
+      const checkData = await checkRes.json();
 
-      for (const line of lines) {
-        if (!line.startsWith('data:')) continue;
-        const jsonStr = line.slice(5).trim();
-        if (!jsonStr) continue;
+      console.log(`[POLL ${attempts}] status=${checkData.status}`);
 
-        let event;
-        try { event = JSON.parse(jsonStr); } catch { continue; }
-
-        const type = event.type || '';
-
-        if (type === 'STARTED') {
-          await addFeedLog(`[CLOUD] TinyFish agent started. Run ID: ${event.runId || '...'}`, 0);
-        } else if (type === 'STREAMING_URL') {
-          await addFeedLog(`[STREAM] Live browser feed active.`, 0);
-        } else if (type === 'PROGRESS') {
-          // Show real agent progress from TinyFish instead of fake poll messages
-          await addFeedLog(`[AGENT] ${event.purpose || 'Working...'}`, 0);
-        } else if (type === 'COMPLETE' || event.status === 'COMPLETED' || event.status === 'SUCCESS') {
-          isDone = true;
-          await addFeedLog(`[SUCCESS] Cloud Agent completed. Syncing state...`, 0.2);
-          agentStatus.value = "success";
-          const amountStr = selectedClaim.value.amount.replace(/[^0-9.-]+/g, "");
-          recoveredRevenue.value += parseFloat(amountStr);
-          hoursSaved.value += 1.5;
-          selectedClaim.value.status = "Appealing";
-          selectedClaim.value.completedAt = new Date().toLocaleString();
-          selectedClaim.value.appealContent = event.resultJson
-            ? JSON.stringify(event.resultJson, null, 2)
-            : "Clinical appeal successfully generated and filed via TinyFish Agentic workflow.";
-          saveState();
-        } else if (type === 'FAILED' || event.status === 'FAILED') {
-          isDone = true;
-          await addFeedLog(`[ERROR] Agent failed: ${event.message || 'Unknown error'}`, 0);
-          agentStatus.value = "error";
-        } else if (type === 'STREAM_END') {
-          isDone = true;
-        }
+      if (checkData.status === 'completed' || checkData.status === 'success') {
+        isDone = true;
+        await addFeedLog(`[SUCCESS] Appeal submitted. Syncing state...`, 0);
+        agentStatus.value = "success";
+        const amountStr = selectedClaim.value.amount.replace(/[^0-9.-]+/g, "");
+        recoveredRevenue.value += parseFloat(amountStr);
+        hoursSaved.value += 1.5;
+        selectedClaim.value.status = "Appealing";
+        selectedClaim.value.completedAt = new Date().toLocaleString();
+        selectedClaim.value.appealContent = checkData.result
+          || "Clinical appeal successfully generated and filed via TinyFish Agentic workflow.";
+        saveState();
+      } else if (checkData.status === 'failed') {
+        isDone = true;
+        await addFeedLog(`[ERROR] Agent failed. Check TinyFish dashboard.`, 0);
+        agentStatus.value = "error";
+      } else {
+        await addFeedLog(`[WORKING] Agent running... (${attempts * 5}s elapsed)`, 0);
       }
     }
 
-    // Fallback: if stream ended without a COMPLETE event
-    if (agentStatus.value === 'running') {
-      await addFeedLog(`[WARN] Stream ended without completion signal. Check TinyFish logs.`, 0);
+    if (!isDone) {
+      await addFeedLog(`[TIMEOUT] No response after 5 minutes. Check TinyFish dashboard.`, 0);
       agentStatus.value = "error";
     }
 
   } catch (err) {
-    console.error("Failed to connect to orchestrator backend:", err);
-    await addFeedLog(`[ERROR] Communication Error: ${err.message}`, 0);
+    console.error("Agent error:", err);
+    await addFeedLog(`[ERROR] ${err.message}`, 0);
     agentStatus.value = "error";
   }
 }
