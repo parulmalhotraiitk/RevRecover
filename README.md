@@ -1,6 +1,6 @@
 # RevRecover: Medical Claims Denial Appeal Agent
 
-**RevRecover** is a "God Tier" automation suite designed for the TinyFish Hackathon. It solves the multi-billion dollar problem of medical insurance claim denials by utilizing the **TinyFish Agentic Web Framework** to automate the appeals process.
+**RevRecover** is a "God Tier" automation suite designed for enterprise medical management. It solves the multi-billion dollar problem of medical insurance claim denials by utilizing the **TinyFish Agentic Web Framework** to automate the appeals process.
 
 ## 🚀 The Problem
 Medical billing specialists spend hours manually logging into insurance portals to fight denied claims. **RevRecover** replaces this manual labor with a "Robot Staffing Agency" that logs in, analyzes the denial, and submits a professional appeal letter in seconds.
@@ -61,7 +61,7 @@ npm run dev
 
 ## ☁️ Deployment: AWS Amplify (Recommended)
 
-To satisfy the hackathon requirement of **"Real Work on the Web"**, you are hosting the suite on AWS Amplify. This allows the TinyFish Cloud Agent to access your Mock Portal over the public internet.
+To successfully demonstrate **"Real Work on the Web"**, you are hosting the suite on AWS Amplify. This allows the TinyFish Cloud Agent to access your Mock Portal over the public internet.
 
 ### 1. Monorepo Setup (Amplify Hosting)
 Connect your GitHub repository to **AWS Amplify Hosting**. 
@@ -103,11 +103,11 @@ RevRecover utilizes the unique power of the **TinyFish Agentic Framework** to so
 -   **DOM Resilience:** Using natural language goals, the agent can navigate messy insurance portals even if the HTML structure changes.
 -   **Zero-Human Logic:** It handles complex, multi-modal workflows (HIPAA popups, auth dialogs) autonomously without hardcoded scripts.
 
-## 🏆 Hackathon Features
+## 🏆 Key Features
 -   **"God Tier" Aesthetic:** Platinum Enterprise UI with glassmorphism and depth effects.
 -   **Live Agent Terminal Feed:** Real-time visibility into the AI's research and actions.
 -   **Business Value Analytics:** Instant tracking of recovered revenue and human hours saved.
 -   **Clinical Research Integration:** Demonstrates real, autonomous work on the live web.
 
 ---
-Built with ❤️ for the **TinyFish Hackathon**.
+Built with ❤️ by the RevRecover Team.
