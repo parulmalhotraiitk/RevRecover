@@ -25,6 +25,12 @@ graph TD
     Backend -- "Success Sync" --> Dashboard
 ```
 
+### ⚡ Async Polling Architecture
+To ensure reliability on the cloud (AWS App Runner), the platform uses a **True Asynchronous** orchestration pattern. 
+- The Backend initiates the agent and returns a `run_id` immediately.
+- The Dashboard polls for status every 10 seconds.
+- This bypasses standard 60-second cloud gateway timeouts, allowing for complex 5+ minute research and automation tasks without connection drops.
+
 ## 🛠️ Getting Started
 
 ### 1. Clone the repository
