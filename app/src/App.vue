@@ -581,10 +581,7 @@ const toggleFaq = (index) => {
                   <CheckCircle class="w-5 h-5" />
                   Appeal Successfully Filed
                </div>
-
             </div>
-            </div>
-
           </div>
           
           <div v-else :class="['h-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center md:min-h-[600px] text-center px-6 transition-colors duration-300', isDark ? 'border-[#1E293B] bg-[#0A0C10]/50' : 'border-slate-200 bg-white shadow-inner shadow-slate-50']">
