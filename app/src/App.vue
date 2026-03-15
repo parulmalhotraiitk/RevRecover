@@ -616,7 +616,6 @@ const toggleFaq = (index) => {
                   </div>
                 </div>
               </div>
-            </div>
 
             <!-- Footer Action Area -->
             <div :class="['p-6 border-t mt-auto transition-colors duration-300', isDark ? 'border-[#1E293B] bg-[#0A0C10]' : 'border-slate-100 bg-slate-50/50']">
