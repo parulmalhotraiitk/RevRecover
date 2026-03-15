@@ -100,7 +100,11 @@ app.post('/api/run-agent', async (req, res) => {
   // Multi-Payer Credential Vault Logic
   // Looks for env vars matching PAYER_[NAME]_USER and PAYER_[NAME]_PASS
   const getPortalCredentials = (payerName) => {
-    const normalized = payerName.split(' ')[0].toUpperCase(); // "Aetna Medicare" -> "AETNA"
+    let normalized = payerName.split(' ')[0].toUpperCase(); // "Aetna Medicare" -> "AETNA"
+    
+    // Explicit Aliases for the God-Tier Demo
+    if (normalized === "MEDICARE" || normalized === "CMS") normalized = "BLUEBUTTON";
+
     return {
       user: process.env[`PAYER_${normalized}_USER`] || process.env.PORTAL_USER || 'admin',
       pass: process.env[`PAYER_${normalized}_PASS`] || process.env.PORTAL_PASS || 'password'
