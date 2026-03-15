@@ -134,46 +134,57 @@ app.post('/api/run-agent', async (req, res) => {
   // Detect if target is our internal simulation portal
   const isInternalPortal = targetUrl.includes('localhost') || targetUrl.includes('awsapprunner.com');
 
+  const agentPersona = `
+    IDENTIFICATION: RevRecover Autonomous Claims Specialist (v2.0)
+    MISSION: You are an expert in medical billing and insurance adjudication. Your goal is to navigate healthcare portals, identify denied claims, and execute research-backed medical necessity appeals with 100% accuracy and professional clinical language.
+    COMPLIANCE: Maintain strict HIPAA protocols. Use deterministic navigation. Avoid extraneous clicks.
+  `;
+
   // Pivot logic: Adapt instructions based on portal "Tier"
   const phase2Goal = isBlueButton 
       ? `
-    PHASE 1: AUTHENTICATION
-    4. Directly navigate to: ${targetUrl}
-    5. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
-    6. STAY on ${targetUrl}. Do not follow links to medicare.gov.
-    7. Look for EXACT text "Connect", "Authorize", or "Allow" and click it.
-    8. Once URL changes or Success seen, MISSION COMPLETE.
+    PHASE 2: SECURE CMS AUTHORIZATION
+    1. Directly navigate to: ${targetUrl}
+    2. Authenticate with Identity: ${creds.user} | Passkey: ${creds.pass}
+    3. STAY on ${targetUrl}. Do not follow external links to medicare.gov.
+    4. Locate the "Connect", "Authorize", or "Allow" control and execute CLICK.
+    5. Once session state validates or URL redirects, terminate with MISSION COMPLETE.
     ` 
       : isInternalPortal 
         ? `
-    PHASE 1: SIMULATION EXECUTION (TURBO)
+    PHASE 2: INTERNAL SIMULATION RESOLUTION (TURBO)
     1. Directly navigate to: ${targetUrl}
-    2. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
-    3. STAY on ${targetUrl}. No searching.
-    4. Find element with ID "btn-resolve-${claimId}" and CLICK IT immediately.
-    5. In "Clinical Justification" textarea, type: "Medical necessity established per clinical guidelines for ${denialReason}. Prior auth ${patientContext.priorAuthCode || 'N/A'} is on file."
-    6. Click button with ID "submit-btn". MISSION COMPLETE.
+    2. Authenticate with Identity: ${creds.user} | Passkey: ${creds.pass}
+    3. STAY on ${targetUrl}. Disregard navigation menus.
+    4. Target element ID "btn-resolve-${claimId}" and execute immediate ACTION.
+    5. In "Clinical Justification" field, input the following technical statement: 
+       "Medical necessity established per clinical guidelines for ${denialReason}. Prior authorization reference ${patientContext.priorAuthCode || 'N/A'} is associated with this encounter. Requesting immediate reversal of denial."
+    6. Execute "submit-btn" interaction. Terminate with MISSION COMPLETE.
     `
         : `
-    PHASE 1: EXTERNAL PORTAL EXECUTION
-    4. Directly navigate to: ${targetUrl}
-    5. Authenticate with: User: ${creds.user} | Pass: ${creds.pass}
-    6. Find the patient or claim matching "${claimId}".
-    7. Initiate the "Appeal" or "Resolve" workflow for this specific entry.
-    8. Draft and submit a formal medical necessity reconsiderations request using the clinical research gathered in Phase 0.
-    9. MISSION COMPLETE.
+    PHASE 2: EXTERNAL PORTAL ADJUDICATION
+    1. Directly navigate to: ${targetUrl}
+    2. Authenticate with Identity: ${creds.user} | Passkey: ${creds.pass}
+    3. Isolate the patient or claim record matching "${claimId}".
+    4. Initiate the "Appeal" or "Resolution" workflow for this specific instance.
+    5. Draft and formalize a medical necessity reconsideration using the clinical research extracted in Phase 1.
+    6. Submit the appeal and terminate with MISSION COMPLETE.
     `;
 
-  // Only include Phase 0 research for external portals to save time
-  const goal = isInternalPortal || isBlueButton
-    ? `COMMAND SET: LOW-LATENCY DETERMINISTIC FINISH\n${phase2Goal}`
-    : `
-    COMMAND SET: LOW-LATENCY DETERMINISTIC FINISH
-    
-    PHASE 0: RESEARCH (CLINICAL DATA)
+  // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
+  const researchPhase = (isInternalPortal || isBlueButton || turbo) ? "" : `
+    PHASE 1: CLINICAL RESEARCH (EVIDENCE EXTRACTION)
     1. Directly navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
-    2. Extract the first study ID (NCT#) and 1 technical sentence.
-    3. SAVE to memory and proceed.
+    2. Extract the primary study NCT# and one technical clinical finding.
+    3. Store in local context and transition to Phase 2.
+  `;
+
+  const goal = `
+    ${agentPersona}
+    
+    COMMAND SET: EXECUTE DETERMINISTIC ADJUDICATION
+    
+    ${researchPhase}
     
     ${phase2Goal}
   `;

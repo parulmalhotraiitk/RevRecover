@@ -135,6 +135,7 @@ const recoveredRevenue = ref(43250);
 const hoursSaved = ref(128);
 const publicPortalUrl = ref("");
 const isDark = ref(true);
+const isTurbo = ref(true);
 const activeTab = ref("queue"); // "queue" or "history"
 
 const handleTabSwitch = (tab) => {
@@ -262,7 +263,8 @@ const handleRunAgent = async () => {
         claimId: selectedClaim.value.id,
         payer: selectedClaim.value.payer,
         denialReason: selectedClaim.value.denialReason,
-        publicPortalUrl: publicPortalUrl.value // Passing the ngrok URL to the backend
+        publicPortalUrl: publicPortalUrl.value, // Passing the ngrok URL to the backend
+        turbo: isTurbo.value
       })
     });
     
@@ -382,6 +384,16 @@ const toggleFaq = (index) => {
             >
               <Activity class="w-3.5 h-3.5" />
               Reset Data
+            </button>
+
+            <!-- Turbo Toggle -->
+            <button 
+              @click="isTurbo = !isTurbo" 
+              :class="['flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 font-black text-[10px] uppercase tracking-widest', isTurbo ? 'bg-amber-500/10 border-amber-500/50 text-amber-500 shadow-lg shadow-amber-500/10' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-400')]"
+              title="Toggle Turbo Mode (Skip Research)"
+            >
+              <Zap :class="['w-3.5 h-3.5', isTurbo ? 'fill-current animate-pulse' : '']" />
+              Turbo {{ isTurbo ? 'ON' : 'OFF' }}
             </button>
 
             <!-- Theme Toggle -->
