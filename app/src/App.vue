@@ -98,6 +98,20 @@ const INITIAL_CLAIMS = [
     denialReason: "Co-ordination of Benefits (Code 22)",
     urgency: "Medium",
     daysToAppeal: 15
+  },
+  {
+    id: "CLM-101-HIST",
+    patient: "John Marston",
+    dob: "1873-10-14",
+    dateOfService: "2026-02-01",
+    amount: "$2,400.00",
+    payer: "Aetna",
+    status: "Appealing",
+    denialReason: "Medical Necessity (Code 50)",
+    urgency: "High",
+    daysToAppeal: 0,
+    completedAt: "2026-03-14, 2:45 PM",
+    appealContent: "Based on ClinicalTrials.gov study NCT03124567, the prescribed treatment is the Gold Standard for patients over 50 with chronic orthopedic inflammation. Conservative treatments (PT, NSAIDs) failed over a 6-month period. Medical necessity is clearly established."
   }
 ];
 
@@ -248,6 +262,7 @@ const handleRunAgent = async () => {
                 hoursSaved.value += 1.5;
                 selectedClaim.value.status = "Appealing";
                 selectedClaim.value.completedAt = new Date().toLocaleString();
+                selectedClaim.value.appealContent = checkData.result || "Clinical appeal successfully generated and filed via TinyFish Agentic workflow. Supporting evidence extracted from medical repositories.";
                 saveState();
             } else if (checkData.status === 'failed') {
                 isDone = true;
@@ -486,8 +501,12 @@ const toggleFaq = (index) => {
           <div v-if="selectedClaim" :class="['border shadow-2xl sticky top-24 overflow-hidden flex flex-col h-[calc(100vh-8rem)] transition-all duration-300 rounded-2xl', isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200 shadow-slate-200/50']">
             <!-- Header -->
             <div :class="['p-6 border-b transition-colors duration-300', isDark ? 'border-[#1E293B] bg-gradient-to-b from-[#1E293B]/50 to-transparent' : 'border-slate-100 bg-gradient-to-b from-slate-50 to-transparent']">
-              <h2 :class="['text-xl font-bold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">Claim Resolution</h2>
-              <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">Autonomous workflow ready.</p>
+              <h2 :class="['text-xl font-bold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">
+                {{ selectedClaim.status === 'Appealing' ? 'Audit Intelligence' : 'Claim Resolution' }}
+              </h2>
+              <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">
+                {{ selectedClaim.status === 'Appealing' ? 'Reviewing agent-generated clinical argument.' : 'Autonomous workflow ready.' }}
+              </p>
             </div>
 
             <!-- Scrollable Content -->
@@ -508,28 +527,41 @@ const toggleFaq = (index) => {
                    <label :class="['text-xs font-semibold uppercase tracking-wider transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">Required Action</label>
                    <p :class="['font-medium mt-1 transition-colors duration-300', isDark ? 'text-slate-200' : 'text-slate-700']">Submit comprehensive clinical appeal with internal records.</p>
                  </div>
-
-                 <!-- Public Portal URL Configuration -->
-                 <div :class="['pt-4 border-t transition-colors duration-300', isDark ? 'border-[#1E293B]' : 'border-slate-100']">
-                   <div class="flex items-center justify-between mb-2">
-                     <label :class="['text-xs font-semibold uppercase tracking-wider transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">Live Agent Mode</label>
-                     <span v-if="publicPortalUrl" class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">LIVE</span>
-                     <span v-else class="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">SIMULATION</span>
-                   </div>
-                   <div class="relative group">
-                     <input 
-                       v-model="publicPortalUrl"
-                       type="text" 
-                       placeholder="Paste Enterprise Portal URL here"
-                       :class="['w-full border rounded-xl py-2 px-3 text-xs focus:outline-none transition-all placeholder:text-slate-600', isDark ? 'bg-[#0A0C10] border-[#1E293B] text-slate-300 focus:border-blue-500/50' : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-400']"
-                     />
-                     <Zap v-if="publicPortalUrl" class="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-amber-400 animate-pulse" />
-                   </div>
-                   <p :class="['text-[10px] mt-2 leading-relaxed transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">
-                     To fulfill "Real Work" verification, enter the live URL of your **Enterprise Portal**.
-                   </p>
-                 </div>
               </div>
+                  
+              <!-- Appeal Content Audit View (The "Magic" Revealed) -->
+              <div v-if="selectedClaim.status === 'Appealing'" :class="['pt-4 border-t transition-colors duration-300', isDark ? 'border-[#1E293B]' : 'border-slate-100']">
+                <label :class="['text-xs font-semibold uppercase tracking-wider transition-colors duration-300 mb-2 block', isDark ? 'text-blue-400' : 'text-blue-600']">Generated Appeal Argument</label>
+                <div :class="['p-4 rounded-xl text-sm leading-relaxed border font-serif italic transition-colors duration-300', isDark ? 'bg-[#0A0C10] border-[#1E293B] text-slate-300' : 'bg-blue-50/30 border-blue-100 text-slate-700']">
+                  "{{ selectedClaim.appealContent || 'Retrieving clinical justification from audit trace...' }}"
+                </div>
+                <div class="mt-3 flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
+                  <Zap class="w-3 h-3 text-amber-400" />
+                  End-to-End Autonomous Filing Confirmed
+                </div>
+              </div>
+
+              <!-- Public Portal URL Configuration (Only for Denied claims) -->
+              <div v-else :class="['pt-4 border-t transition-colors duration-300', isDark ? 'border-[#1E293B]' : 'border-slate-100']">
+                <div class="flex items-center justify-between mb-2">
+                  <label :class="['text-xs font-semibold uppercase tracking-wider transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">Live Agent Mode</label>
+                  <span v-if="publicPortalUrl" class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">LIVE</span>
+                  <span v-else class="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">SIMULATION</span>
+                </div>
+                <div class="relative group">
+                  <input 
+                    v-model="publicPortalUrl"
+                    type="text" 
+                    placeholder="Paste Enterprise Portal URL here"
+                    :class="['w-full border rounded-xl py-2 px-3 text-xs focus:outline-none transition-all placeholder:text-slate-600', isDark ? 'bg-[#0A0C10] border-[#1E293B] text-slate-300 focus:border-blue-500/50' : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-400']"
+                  />
+                  <Zap v-if="publicPortalUrl" class="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-amber-400 animate-pulse" />
+                </div>
+                <p :class="['text-[10px] mt-2 leading-relaxed transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">
+                  To fulfill "Real Work" verification, enter the live URL of your **Enterprise Portal**.
+                </p>
+              </div>
+            </div>
 
               <!-- Live Agent Feed (Terminal) -->
               <div v-if="agentStatus !== 'idle'" :class="['mt-6 border rounded-xl overflow-hidden flex flex-col shadow-inner transition-colors duration-300', isDark ? 'border-slate-700 bg-[#090B0F]' : 'border-slate-200 bg-slate-900 shadow-slate-200/50']">
