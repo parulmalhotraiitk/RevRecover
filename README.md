@@ -8,9 +8,9 @@ Medical billing specialists spend hours manually logging into insurance portals 
 ## 🛡️ Architecture
 The suite consists of three core components:
 
-1.  **[RevRecover Dashboard](./dashboard):** A premium React/Vite command center where specialists manage denials and trigger agents.
+1.  **[RevRecover App](./app):** A premium React/Vite command center where specialists manage denials and trigger agents.
 2.  **[Agent Backend](./backend):** The orchestration layer that connects the dashboard to the TinyFish Web Agent API.
-3.  **[AetnaCare Mock Portal](./mock-portal):** A high-fidelity insurance portal simulation built to prove the agent's ability to handle complex, messy web UIs (HIPAA modals, accordions, pagination).
+3.  **[Enterprise Portal](./enterprise-portal):** A high-fidelity insurance portal simulation built to prove the agent's ability to handle complex, messy web UIs.
 
 ```mermaid
 graph TD
@@ -43,18 +43,18 @@ cp .env.example .env
 npm start
 ```
 
-### 3. Start the Mock Portal
-The agent needs a target to act upon! Start the AetnaCare simulation.
+### 3. Start the Enterprise Portal
+The agent needs a target to act upon! Start the Payer simulation.
 ```bash
-cd ../mock-portal
+cd ../enterprise-portal
 npm install
 npm run dev
 ```
 
-### 4. Launch the Dashboard
+### 4. Launch the RevRecover App
 Finally, start the RevRecover command center.
 ```bash
-cd ../dashboard
+cd ../app
 npm install
 npm run dev
 ```
@@ -73,14 +73,14 @@ For the agent to function in the cloud, you must configure **Environment Variabl
 | Component | Variable Name | Description |
 | :--- | :--- | :--- |
 | **Backend** | `TINYFISH_API_KEY` | Your secret API key. Configure this in Amplify Secrets or App Runner. |
-| **Backend** | `MOCK_PORTAL_URL` | The public URL of your **Mock Portal** (provided by Amplify). |
-| **Dashboard** | `VITE_API_URL` | The public URL of your **Backend API**. |
+| **Backend** | `MOCK_PORTAL_URL` | The public URL of your **Enterprise Portal** (provided by Amplify). |
+| **App** | `VITE_API_URL` | The public URL of your **Backend API**. |
 
 ### 3. "Real Work" Verification
 Once deployed:
-1.  Open your **RevRecover Dashboard** (Amplify URL).
-2.  Paste your **Mock Portal URL** (Amplify URL) into the "Live Agent Mode" box.
-3.  Trigger the agent. It will autonomously navigate the public internet to [ClinicalTrials.gov](https://clinicaltrials.gov/) for research, and then login to your production-hosted **Mock Portal** to verify the claim.
+1.  Open your **RevRecover App** (Amplify URL).
+2.  Paste your **Enterprise Portal URL** (Amplify URL) into the "Live Agent Mode" box.
+3.  Trigger the agent. It will autonomously navigate the public internet to [ClinicalTrials.gov](https://clinicaltrials.gov/) for research, and then login to your production-hosted **Enterprise Portal** to verify the claim.
 
 ## 🔒 Security First: Protecting your Secrets
 

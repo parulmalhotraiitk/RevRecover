@@ -1,6 +1,6 @@
 version: 1
 applications:
-  - appRoot: dashboard
+  - appRoot: app
     frontend:
       phases:
         preBuild:
@@ -16,7 +16,7 @@ applications:
       cache:
         paths:
           - node_modules/**/*
-  - appRoot: mock-portal
+  - appRoot: enterprise-portal
     frontend:
       phases:
         preBuild:
