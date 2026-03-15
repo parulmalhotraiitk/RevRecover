@@ -142,6 +142,20 @@ const handleTabSwitch = (tab) => {
   selectedClaim.value = null; // Clear selection to keep UI clean during audit
 };
 
+const frontendBuildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'Dev';
+const backendBuildTime = ref('Syncing...');
+
+const fetchBackendHealth = async () => {
+  try {
+    const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+    const res = await fetch(`${apiBaseUrl}/api/health`);
+    const data = await res.json();
+    backendBuildTime.value = data.buildTime || 'N/A';
+  } catch (e) {
+    backendBuildTime.value = 'Offline';
+  }
+};
+
 const RARC_MAP = {
   "Code 197": "Missing Prior Authorization. This service requires medical necessity review before performance.",
   "Code 50": "Medical Necessity. The documentation provided does not support the intensity of service.",
@@ -205,6 +219,7 @@ onMounted(() => {
     claims.value = state.claims;
     if (state.isDark !== undefined) isDark.value = state.isDark;
   }
+  fetchBackendHealth();
 });
 
 const selectClaim = (claim) => {
@@ -353,7 +368,9 @@ const toggleFaq = (index) => {
             <span :class="['font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r', isDark ? 'from-white to-slate-400' : 'from-slate-900 to-slate-600']">RevRecover</span>
             <div class="flex flex-col ml-2">
               <span :class="['text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors duration-300 w-fit', isDark ? 'bg-[#1E293B] text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200']">Powered by TinyFish AI</span>
-              <span class="text-[8px] font-bold text-slate-500 mt-1 uppercase tracking-tighter ml-1">Build: Mar 15, 08:06 PM</span>
+              <span class="text-[7.5px] font-bold text-slate-500 mt-1 uppercase tracking-tighter ml-1">
+                F: {{ frontendBuildTime }} | B: {{ backendBuildTime }}
+              </span>
             </div>
           </div>
           <div class="flex items-center gap-6">

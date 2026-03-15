@@ -10,6 +10,16 @@ const path = require('path');
 app.use(cors());
 app.use(express.json());
 
+// Load Build Information
+let buildInfo = { timestamp: 'Development' };
+try {
+  const fs = require('fs');
+  buildInfo = JSON.parse(fs.readFileSync(path.join(__dirname, 'build-info.json'), 'utf8'));
+  console.log(`🏗️  Backend Build Timestamp: ${buildInfo.timestamp}`);
+} catch (e) {
+  console.log('🏗️  No build-info.json found, running in production/dev without timestamp.');
+}
+
 // Global state for Simulation Portal
 let agentSessionActive = false;
 let portalState = [
@@ -38,7 +48,11 @@ app.get('/', (req, res) => {
 
 // Health check route for deployment verification
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'active', service: 'RevRecover Agent Backend' });
+  res.json({ 
+    status: 'active', 
+    service: 'RevRecover Agent Backend', 
+    buildTime: buildInfo.timestamp 
+  });
 });
 
 // Serve Simulation Portal
@@ -142,10 +156,10 @@ app.post('/api/run-agent', async (req, res) => {
     8. Find the claim with ID "${claimId}".
     9. Click the button with ID "btn-resolve-${claimId}" to initiate the appeal.
     10. Expand adjudication details and initiate the Appeal process if needed.
-    10. Complete the form using the Clinical Evidence gathered in Phase 1:
+    11. Complete the form using the Clinical Evidence gathered in Phase 1:
         - Prior Authorization: ${patientContext.priorAuthCode || 'None'}
         - Supporting Proof: Use the extracted research from ClinicalTrials.gov to write a compelling 2-sentence medical necessity statement.
-    11. Submit the appeal and wait for confirmation.
+    12. Submit the appeal and wait for confirmation.
     `;
 
   const goal = `
