@@ -16,6 +16,18 @@ const INITIAL_CLAIMS = [
     daysToAppeal: 12
   },
   {
+    id: "CLM-999-CMS",
+    patient: "Ezio Auditore",
+    dob: "1955-08-12",
+    dateOfService: "2026-03-01",
+    amount: "$12,400.00",
+    payer: "Medicare (CMS)",
+    status: "Denied",
+    denialReason: "Duplicate Claim (Code 18)",
+    urgency: "High",
+    daysToAppeal: 12
+  },
+  {
     id: "CLM-814-22X",
     patient: "Marcus Thorne",
     dob: "1978-11-04",
