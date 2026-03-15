@@ -8,6 +8,11 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Root route for verification
+app.get('/', (req, res) => {
+  res.send('<h1>🚀 RevRecover Agentic Backend is LIVE</h1><p>The Brain is active and waiting for TinyFish orchestration.</p>');
+});
+
 // Health check route for deployment verification
 app.get('/api/health', (col, res) => {
   res.json({ status: 'active', service: 'RevRecover Agent Backend' });
