@@ -88,176 +88,165 @@ const patientDatabase = {
   "CLM-552-33W": { priorAuthCode: "AUTH-MORGAN-55" }
 };
 
-app.post('/api/run-agent', async (req, res) => {
-  const { claimId, payer, denialReason, publicPortalUrl } = req.body;
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: Build the TinyFish goal string
+// ─────────────────────────────────────────────────────────────────────────────
+function buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, patientContext }) {
+  const isBlueButton = payer.toUpperCase().includes('MEDICARE') || payer.toUpperCase().includes('CMS');
+  const isInternalPortal = targetUrl.includes('localhost') || targetUrl.includes('awsapprunner.com');
 
-  console.log(`\n🚀 Received request to run agent for claim: ${claimId}`);
-  console.log(`Payer: ${payer} | Denial: ${denialReason}`);
-  console.log(`Target URL: ${publicPortalUrl || 'Local Mode'}`);
+  const persona = `You are RevRecover, an expert autonomous claims adjudication agent.
+Rules: only use element IDs when provided (#id), minimize clicks, do NOT open new tabs or search engines.`;
+
+  const researchPhase = (isInternalPortal || isBlueButton || turbo) ? '' : `
+STEP 1 - CLINICAL RESEARCH:
+- Go to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
+- Extract: primary NCT# and one clinical outcome sentence
+- Store in memory and continue`;
+
+  let actionPhase;
+  if (isBlueButton) {
+    actionPhase = `
+STEP 2 - CMS AUTHORIZATION:
+- Go to: ${targetUrl}
+- Login: username="${creds.user}", password="${creds.pass}"
+- Find and click the "Connect", "Authorize", or "Allow" button
+- DONE when URL changes or success message appears`;
+  } else if (isInternalPortal) {
+    actionPhase = `
+STEP 2 - APPEAL SUBMISSION (use element IDs exactly as given):
+- Go to: ${targetUrl}
+- Type "${creds.user}" into #username
+- Type "${creds.pass}" into #password
+- Click #login-btn
+- Click #drill-down-${claimId}
+- Click #open-appeal-btn
+- In #appeal-reason-select choose "Medical Necessity Documentation Attached"
+- In #appeal-notes-area type: "Medical necessity confirmed for ${claimId}. Auth: ${patientContext.priorAuthCode || 'N/A'}. Requesting immediate reversal."
+- Click #submit-appeal-btn
+- DONE`;
+  } else {
+    actionPhase = `
+STEP 2 - EXTERNAL PORTAL APPEAL:
+- Go to: ${targetUrl}
+- Login: username="${creds.user}", password="${creds.pass}"
+- Find claim "${claimId}" (search by ID first, then by patient name if not found)
+- Open the appeal or reconsideration workflow
+- Enter medical necessity justification using clinical evidence from Step 1
+- Submit the form
+- DONE`;
+  }
+
+  return `${persona}
+${researchPhase}
+${actionPhase}`.trim();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: Build target URL
+// ─────────────────────────────────────────────────────────────────────────────
+function buildTargetUrl(publicPortalUrl) {
+  let targetUrl = publicPortalUrl || process.env.MOCK_PORTAL_URL || 'http://localhost:5173';
+  if (targetUrl.includes('awsapprunner.com') && !targetUrl.includes('/portal')) {
+    targetUrl = targetUrl.endsWith('/') ? `${targetUrl}portal` : `${targetUrl}/portal`;
+  }
+  return targetUrl;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/run-agent  →  SSE streaming endpoint (real-time events)
+//   Front-end connects with EventSource('/api/run-agent-stream')
+//   This endpoint just spawns the run and returns the runId immediately
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/run-agent', async (req, res) => {
+  const { claimId, payer, denialReason, publicPortalUrl, turbo } = req.body;
+
+  console.log(`\n🚀 [RUN-AGENT] claim=${claimId} payer=${payer} turbo=${turbo}`);
+  console.log(`Target: ${publicPortalUrl || 'Local Mode'}`);
 
   const patientContext = patientDatabase[claimId] || {};
   const apiKey = process.env.TINYFISH_API_KEY;
 
   if (!apiKey || apiKey === 'your_api_key_here') {
-    console.error("❌ TinyFish API Key missing or invalid.");
-    return res.status(500).json({ success: false, message: "TinyFish API Key not configured in App Runner environment variables." });
+    return res.status(500).json({ success: false, message: 'TinyFish API Key not configured.' });
   }
 
-  // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
-  // Dashboard Input (publicPortalUrl) takes priority over Environment Variable (MOCK_PORTAL_URL)
-  let targetUrl = publicPortalUrl || process.env.MOCK_PORTAL_URL || "http://localhost:5173";
-  
-  // Smart Append: Ensure simulation portal path is present for AWS Simulation Mode
-  if (targetUrl.includes('awsapprunner.com') && !targetUrl.includes('/portal')) {
-      targetUrl = targetUrl.endsWith('/') ? `${targetUrl}portal` : `${targetUrl}/portal`;
-      console.log(`✨ Smart URL Correction: Appended /portal to ${targetUrl}`);
-  }
-  // Multi-Payer Credential Vault Logic
-  // Looks for env vars matching PAYER_[NAME]_USER and PAYER_[NAME]_PASS
+  const targetUrl = buildTargetUrl(publicPortalUrl);
   const getPortalCredentials = (payerName) => {
-    let normalized = payerName.split(' ')[0].toUpperCase(); // "Aetna Medicare" -> "AETNA"
-    
-    // Explicit Aliases for the God-Tier Demo
-    if (normalized === "MEDICARE" || normalized === "CMS") normalized = "BLUEBUTTON";
-
+    let normalized = payerName.split(' ')[0].toUpperCase();
+    if (normalized === 'MEDICARE' || normalized === 'CMS') normalized = 'BLUEBUTTON';
     return {
       user: process.env[`PAYER_${normalized}_USER`] || process.env.PORTAL_USER || 'admin',
       pass: process.env[`PAYER_${normalized}_PASS`] || process.env.PORTAL_PASS || 'password'
     };
   };
-
   const creds = getPortalCredentials(payer);
+  const goal = buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, patientContext });
 
-  // Refine the goal for the Blue Button Sandbox to prevent generic redirects
-  const isBlueButton = payer.toUpperCase().includes("MEDICARE") || payer.toUpperCase().includes("CMS");
-  
-  // Detect if target is our internal simulation portal
-  const isInternalPortal = targetUrl.includes('localhost') || targetUrl.includes('awsapprunner.com');
+  console.log(`\n🎯 Goal sent to TinyFish (${turbo ? 'TURBO' : 'FULL'} mode, target: ${targetUrl})`);
+  console.log('--- GOAL ---\n', goal, '\n--- END GOAL ---');
 
-  const agentPersona = `
-    ## IDENTIFICATION: RevRecover Autonomous Claims Specialist (v2.0)
-    ## MISSION: Expert-level navigation of healthcare portals to adjudicate denied claims through clinical evidence and professional appeal formalization.
-    
-    ## OPERATIONAL RULES:
-    1. STRICT DETERMINISM: Use specific IDs (#id) whenever provided.
-    2. HIPAA COMPLIANCE: Do not store PII in long-term memory.
-    3. EFFICIENCY: Execute the minimum number of clicks to reach the "Mission Complete" state.
-    4. NO EXTERNAL SEARCH: Unless explicitly specified in Phase 1.
-  `;
-
-  // Pivot logic: Adapt instructions based on portal "Tier"
-  const phase2Goal = isBlueButton 
-      ? `
-    ## PHASE 2: SECURE CMS AUTHORIZATION
-    ### 1. Website Navigation
-    * Navigate to: ${targetUrl}
-    * Authenticate Identity: ${creds.user} | Passkey: ${creds.pass}
-    ### 2. Authorization Execution
-    * STAY on ${targetUrl}. Disregard medicare.gov redirects.
-    * Target text: "Connect", "Authorize", or "Allow".
-    * Finalize: Execute "MISSION COMPLETE" on successful redirect.
-    ` 
-      : isInternalPortal 
-        ? `
-    ## PHASE 2: INTERNAL SIMULATION RESOLUTION (TURBO)
-    ### 1. Deterministic Authentication
-    * Type "${creds.user}" in #username
-    * Type "${creds.pass}" in #password
-    * Click #login-btn
-    ### 2. Claim Adjudication (Low Latency)
-    * Click element matching: #drill-down-${claimId}
-    * Click: #open-appeal-btn
-    * Selection: Choose "Medical Necessity" in #appeal-reason-select
-    * Narrative: Input "Deterministic clinical reversal requested for ${claimId}. Ref: ${patientContext.priorAuthCode || 'AUTH-SIM-99'}." in #appeal-notes-area
-    * Execute: Click #submit-appeal-btn
-    * Terminate: MISSION COMPLETE
-    `
-        : `
-    ## PHASE 2: EXTERNAL PORTAL ADJUDICATION
-    ### 1. Navigation & Discovery
-    * Navigate to: ${targetUrl}
-    * Authenticate Identity: ${creds.user} | Passkey: ${creds.pass}
-    * SEARCH PRIORITIZATION: 
-      | Priority | Search Term |
-      | -- | -- |
-      | 1. Primary | Claim Reference ID: "${claimId}" |
-      | 2. Secondary | Patient Unique Identifier |
-      | 3. Tertiary | Status: "Denied" + Service Date |
-    ### 2. Appeal Formalization
-    * Trigger entry point: "Appeal", "Reconsideration", or "Review".
-    * Draft medical necessity plea using evidence extracted in Phase 1.
-    * Finalize: Submit and capture confirmation code.
-    ### 3. Error Handling
-    * If 404/Login fail: Retry authentication once.
-    * If claim not found: Perform a broader date search.
-    * MISSION COMPLETE.
-    `;
-
-  // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
-  const researchPhase = (isInternalPortal || isBlueButton || turbo) ? "" : `
-    ## PHASE 1: CLINICAL RESEARCH (EVIDENCE EXTRACTION)
-    1. Navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
-    2. STANDARDIZATION TABLE:
-       | Requirement | Extraction Logic |
-       | -- | -- |
-       | Study ID | NCT# (Primary Study) |
-       | Evidence | Most significant clinical outcome sentence |
-    3. Store findings in local session context.
-  `;
-
-  const goal = `
-    ${agentPersona}
-    
-    ## COMMAND SET: EXECUTE DETERMINISTIC ADJUDICATION
-    
-    ${researchPhase}
-    
-    ${phase2Goal}
-  `;
-
-  console.log(`\n🤖 Sending Goal to TinyFish API (Target: ${targetUrl})...`);
-  
   try {
-    const response = await fetch("https://agent.tinyfish.ai/v1/automation/run-async", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": apiKey
-      },
-      body: JSON.stringify({
-        url: targetUrl,
-        goal: goal
-      })
+    // ── Use SSE streaming endpoint for real-time event forwarding ──
+    const tfResponse = await fetch('https://agent.tinyfish.ai/v1/automation/run-sse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+      body: JSON.stringify({ url: targetUrl, goal, browser_profile: 'stealth' })
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("❌ TinyFish API Error:", data);
-      return res.status(response.status).json({ 
-        success: false, 
-        message: data.message || "TinyFish Agent encountered an error." 
-      });
+    if (!tfResponse.ok) {
+      const errText = await tfResponse.text();
+      console.error('❌ TinyFish SSE start failed:', errText);
+      return res.status(tfResponse.status).json({ success: false, message: `TinyFish error: ${errText}` });
     }
 
-    // Set portal session to active
-    agentSessionActive = true;
-    setTimeout(() => { agentSessionActive = false; }, 300000); // Reset after 5 mins fallback
+    // Set up SSE response headers so the browser can stream events
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.flushHeaders();
 
-    console.log("✅ TinyFish Agent started successfully:", data.run_id);
-    res.json({ 
-      success: true, 
-      message: "Agent workflow initiated in cloud.",
-      runId: data.run_id
+    agentSessionActive = true;
+
+    // Pipe every SSE chunk from TinyFish → our frontend
+    tfResponse.body.on('data', (chunk) => {
+      const text = chunk.toString();
+      // Forward raw SSE data lines as-is
+      res.write(text);
+      // Check for COMPLETE event to update portal state
+      if (text.includes('"type":"COMPLETE"') || text.includes('"status":"COMPLETED"') || text.includes('"status":"SUCCESS"')) {
+        agentSessionActive = false;
+        // Mark claim as Appealing in portal state
+        const claim = portalState.find(c => c.id === claimId);
+        if (claim) claim.status = 'Appealing';
+        console.log(`✅ TinyFish COMPLETE event received for claim ${claimId}`);
+      }
+    });
+
+    tfResponse.body.on('end', () => {
+      agentSessionActive = false;
+      res.write('data: {"type":"STREAM_END"}\n\n');
+      res.end();
+      console.log(`🏁 TinyFish SSE stream ended for claim ${claimId}`);
+    });
+
+    tfResponse.body.on('error', (err) => {
+      console.error('❌ Stream error:', err);
+      res.write(`data: {"type":"ERROR","message":"${err.message}"}\n\n`);
+      res.end();
+    });
+
+    req.on('close', () => {
+      console.log('Frontend disconnected from SSE stream.');
+      tfResponse.body.destroy();
     });
 
   } catch (err) {
-    console.error("❌ CRITICAL ORCHESTRATION ERROR:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: `Backend Failure: ${err.message}`,
-      stack: err.stack 
-    });
+    console.error('❌ CRITICAL ORCHESTRATION ERROR:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: `Backend Failure: ${err.message}` });
+    }
   }
 });
 // Status polling endpoint to check TinyFish run state

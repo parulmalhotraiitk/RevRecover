@@ -254,77 +254,94 @@ const handleRunAgent = async () => {
   await addFeedLog(`[TARGET] Navigating to ${selectedClaim.value.payer} Provider Portal via Tunnel`, 0.1);
   
   try {
-    // Use environment variable for the API URL, falling back to localhost for development
     const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-    const responsePromise = fetch(`${apiBaseUrl}/api/run-agent`, {
+
+    // Stream the response directly — backend pipes TinyFish SSE events in real-time
+    const response = await fetch(`${apiBaseUrl}/api/run-agent`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         claimId: selectedClaim.value.id,
         payer: selectedClaim.value.payer,
         denialReason: selectedClaim.value.denialReason,
-        publicPortalUrl: publicPortalUrl.value, // Passing the ngrok URL to the backend
+        publicPortalUrl: publicPortalUrl.value,
         turbo: isTurbo.value
       })
     });
-    
-    await addFeedLog(`[AUTH] Bypassing login modal securely...`, 0.2);
-    await addFeedLog(`[DOM] Identifying 'HIPAA Acknowledgment' popup...`, 0.1);
-    await addFeedLog(`[ACTION] Clicked 'I Agree' on HIPAA modal.`, 0.1);
-    await addFeedLog(`[NAVIGATE] Traversing 'Claims Inquiry' pagination...`, 0.2);
-    await addFeedLog(`[DOM] Located Claim ID: ${selectedClaim.value.id}`, 0.1);
-    await addFeedLog(`[EXTRACT] Reading Adjudication Details accordion...`, 0.1);
-    await addFeedLog(`[STATE] Denial maps to: ${selectedClaim.value.denialReason}.`, 0.1);
-    await addFeedLog(`[GENERATE] Drafting appeal letter using combined Clinical Research + Patient Context...`, 0.3);
-    await addFeedLog(`[ACTION] Submitting 4-page formal appeal payload...`, 0.2);
 
-    const response = await responsePromise;
-    const result = await response.json();
-    
-    if (response.ok && result.runId) {
-        await addFeedLog(`[CLOUD] Agent session stable. Starting background polling...`, 0.5);
-        
-        // Polling loop to wait for completion
-        let isDone = false;
-        let attempts = 0;
-        const maxAttempts = 30; // 5 minutes max (10s intervals)
-        
-        while (!isDone && attempts < maxAttempts) {
-            attempts++;
-            await new Promise(r => setTimeout(r, 3000)); // wait 3s for turbo mode responsiveness
-            
-            // Add timestamp to bypass caching
-            const checkRes = await fetch(`${apiBaseUrl}/api/check-run/${result.runId}?t=${Date.now()}`);
-            const checkData = await checkRes.json();
-            
-            console.log(`[FRONTEND POLL] Received status: ${checkData.status}`);
-            
-            if (checkData.status === 'completed' || checkData.status === 'success') {
-                isDone = true;
-                await addFeedLog(`[SUCCESS] Cloud Agent finished work. Syncing state...`, 0.5);
-                agentStatus.value = "success";
-                const amountStr = selectedClaim.value.amount.replace(/[^0-9.-]+/g,"");
-                recoveredRevenue.value += parseFloat(amountStr);
-                hoursSaved.value += 1.5;
-                selectedClaim.value.status = "Appealing";
-                selectedClaim.value.completedAt = new Date().toLocaleString();
-                selectedClaim.value.appealContent = checkData.result || "Clinical appeal successfully generated and filed via TinyFish Agentic workflow. Supporting evidence extracted from medical repositories.";
-                saveState();
-            } else if (checkData.status === 'failed') {
-                isDone = true;
-                await addFeedLog(`[ERROR] Agent failed in the cloud.`, 0);
-                agentStatus.value = "error";
-            } else {
-                await addFeedLog(`[POLL] Agent working on clinical evidence... (Attempt ${attempts})`, 0);
-            }
-        }
-    } else {
-        await addFeedLog(`[ERROR] Backend Reject: ${result.message || 'Unknown Failure'}`, 0);
-        agentStatus.value = "error";
+    if (!response.ok || !response.body) {
+      const errData = await response.json().catch(() => ({}));
+      await addFeedLog(`[ERROR] Backend Reject: ${errData.message || 'Connection failed'}`, 0);
+      agentStatus.value = "error";
+      return;
     }
+
+    await addFeedLog(`[CLOUD] Agent session live. Streaming events...`, 0.2);
+
+    // Read the SSE stream from the backend line by line
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let isDone = false;
+
+    while (!isDone) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // Keep last incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const jsonStr = line.slice(5).trim();
+        if (!jsonStr) continue;
+
+        let event;
+        try { event = JSON.parse(jsonStr); } catch { continue; }
+
+        const type = event.type || '';
+
+        if (type === 'STARTED') {
+          await addFeedLog(`[CLOUD] TinyFish agent started. Run ID: ${event.runId || '...'}`, 0);
+        } else if (type === 'STREAMING_URL') {
+          await addFeedLog(`[STREAM] Live browser feed active.`, 0);
+        } else if (type === 'PROGRESS') {
+          // Show real agent progress from TinyFish instead of fake poll messages
+          await addFeedLog(`[AGENT] ${event.purpose || 'Working...'}`, 0);
+        } else if (type === 'COMPLETE' || event.status === 'COMPLETED' || event.status === 'SUCCESS') {
+          isDone = true;
+          await addFeedLog(`[SUCCESS] Cloud Agent completed. Syncing state...`, 0.2);
+          agentStatus.value = "success";
+          const amountStr = selectedClaim.value.amount.replace(/[^0-9.-]+/g, "");
+          recoveredRevenue.value += parseFloat(amountStr);
+          hoursSaved.value += 1.5;
+          selectedClaim.value.status = "Appealing";
+          selectedClaim.value.completedAt = new Date().toLocaleString();
+          selectedClaim.value.appealContent = event.resultJson
+            ? JSON.stringify(event.resultJson, null, 2)
+            : "Clinical appeal successfully generated and filed via TinyFish Agentic workflow.";
+          saveState();
+        } else if (type === 'FAILED' || event.status === 'FAILED') {
+          isDone = true;
+          await addFeedLog(`[ERROR] Agent failed: ${event.message || 'Unknown error'}`, 0);
+          agentStatus.value = "error";
+        } else if (type === 'STREAM_END') {
+          isDone = true;
+        }
+      }
+    }
+
+    // Fallback: if stream ended without a COMPLETE event
+    if (agentStatus.value === 'running') {
+      await addFeedLog(`[WARN] Stream ended without completion signal. Check TinyFish logs.`, 0);
+      agentStatus.value = "error";
+    }
+
   } catch (err) {
-      console.error("Failed to connect to orchestrator backend: ", err);
-      await addFeedLog(`[ERROR] Communication Error: Cloud connection unstable.`, 0);
+    console.error("Failed to connect to orchestrator backend:", err);
+    await addFeedLog(`[ERROR] Communication Error: ${err.message}`, 0);
+    agentStatus.value = "error";
   }
 }
 
