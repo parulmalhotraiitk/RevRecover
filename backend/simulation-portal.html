@@ -131,6 +131,8 @@
                     <td class="px-8 py-5">
                         <button 
                             id="btn-resolve-${c.id}"
+                            data-agent-action="resolve"
+                            title="Click to resolve claim ${c.id}"
                             onclick="openAppealModal('${c.id}')" 
                             aria-label="Resolve claim ${c.id} for ${c.patient}"
                             class="bg-gray-800 text-white text-[10px] uppercase font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm"

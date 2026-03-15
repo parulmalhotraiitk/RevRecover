@@ -132,44 +132,23 @@ app.post('/api/run-agent', async (req, res) => {
   const isBlueButton = payer.toUpperCase().includes("MEDICARE") || payer.toUpperCase().includes("CMS");
   
   // Pivot logic: For Blue Button, we don't "file an appeal", we "authorize access"
-  const phase2Goal = isBlueButton 
-    ? `
-    PHASE 2: AUTHORIZATION (REAL WORK)
-    5. Navigate to: ${targetUrl}
-    6. STAY ON THE "sandbox.bluebutton.cms.gov" DOMAIN. Do not follow links to medicare.gov.
-    7. Securely authenticate using these synthetic credentials:
-       - Username: ${creds.user}
-       - Password: ${creds.pass}
-    8. IF YOU ALREADY SEE a "Connect your Medicare claims data" or "Authorize" screen, you have successfully logged in. Proceed to step 9 immediately.
-    9. Dismiss any HIPAA or legal affirmation modals if they appear.
-    10. Look for a button or checkbox to "Authorize", "Approve", "Allow", or "Grant Access".
-    11. Click the button to confirm authorization.
-    12. Once the page redirects back or shows a Success message, you are done.
-    `
-    : `
-    PHASE 2: ACTION (PORTAL AUTOMATION)
-    5. Navigate to: ${targetUrl}
-    6. DO NOT USE SEARCH ENGINES. STAY ON THIS DOMAIN ONLY.
-    7. Securely authenticate using these ${payer}-specific credentials:
-       - Username: ${creds.user}
-       - Password: ${creds.pass}
-    8. Dismiss any HIPAA or legal affirmation modals if they appear.
-    9. FAST MODE: Find the claim with ID "${claimId}" and CLICK the button with ID "btn-resolve-${claimId}" immediately.
-    10. Do not browse or look for alternative links. Use the provided ID for a 1-click resolution.
-    11. Complete the form using the Clinical Evidence gathered in Phase 1:
-        - Prior Authorization: ${patientContext.priorAuthCode || 'None'}
-        - Supporting Proof: Use the extracted research from ClinicalTrials.gov to write a compelling 2-sentence medical necessity statement.
-    12. Submit the appeal and wait for confirmation.
-    `;
-
   const goal = `
-    PHASE 1: LIVE RESEARCH (CLINICAL DATA)
-    1. Navigate to: https://clinicaltrials.gov/
-    2. Search for clinical evidence related to "${denialReason}".
-    3. Extract 1-2 points of supporting research data.
-    4. Keep this research in your session memory.
-
-    ${phase2Goal}
+    COMMAND SET: LOW-LATENCY DETERMINISTIC FINISH
+    
+    PHASE 1: RESEARCH (20 SECONDS MAX)
+    1. Directly navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
+    2. Extract the first study ID (NCT#) and 1 technical sentence.
+    3. SAVE to memory and IMMEDIATELY proceed. DO NOT browse.
+    
+    PHASE 2: EXECUTION (30 SECONDS MAX)
+    4. Directly navigate to: ${targetUrl}
+    5. FORBIDDEN: Do not use DuckDuckGo, Google, or any search engine. 
+    6. STAY on ${targetUrl}.
+    7. Authenticate: User: ${creds.user} | Pass: ${creds.pass}
+    8. ${isBlueButton ? 'Look for EXACT text "Connect" or "Authorize" and click it.' : 'Find element with ID "btn-resolve-' + claimId + '" and CLICK it immediately.'}
+    9. If modal appears, click any button with text "Agree" or "Close".
+    10. ${isBlueButton ? 'Finish when URL changes.' : 'In the textarea with ID "appeal-text", paste the NCT# + research. Click button with ID "submit-btn".'}
+    11. MISSION COMPLETE.
   `;
 
   console.log(`\n🤖 Sending Goal to TinyFish API (Target: ${targetUrl})...`);
