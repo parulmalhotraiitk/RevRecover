@@ -3,12 +3,12 @@ frontend:
   phases:
     preBuild:
       commands:
-        - cd app && npm ci
-        - cd ../enterprise-portal && npm ci
+        - npm ci --prefix app
+        - npm ci --prefix enterprise-portal
     build:
       commands:
-        - cd enterprise-portal && npm run build
-        - cd ../app && npm run build
+        - npm run build --prefix enterprise-portal
+        - npm run build --prefix app
         # Merge the portal into the app's distribution folder
         - mkdir -p app/dist/portal
         - cp -r enterprise-portal/dist/* app/dist/portal/
