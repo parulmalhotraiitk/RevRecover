@@ -310,6 +310,16 @@ const toggleFaq = (index) => {
             <span :class="['ml-2 text-xs font-semibold px-2 py-0.5 rounded-full border transition-colors duration-300', isDark ? 'bg-[#1E293B] text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200']">Powered by TinyFish AI</span>
           </div>
           <div class="flex items-center gap-6">
+            <!-- Reset Button -->
+            <button 
+              @click="resetDashboard"
+              :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 border', isDark ? 'text-slate-400 border-slate-700 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/5' : 'text-slate-500 border-slate-200 hover:text-red-600 hover:border-red-200 hover:bg-red-50']"
+              title="Reset All Data"
+            >
+              <Activity class="w-3.5 h-3.5" />
+              Reset Data
+            </button>
+
             <!-- Theme Toggle -->
             <button 
               @click="toggleTheme" 
@@ -572,16 +582,7 @@ const toggleFaq = (index) => {
                   Appeal Successfully Filed
                </div>
 
-               <!-- Reset Button -->
-               <div :class="['mt-4 pt-4 border-t flex justify-center transition-colors duration-300', isDark ? 'border-[#1E293B]' : 'border-slate-100']">
-                 <button 
-                   @click="resetDashboard"
-                   :class="['text-[10px] transition-colors flex items-center gap-1', isDark ? 'text-slate-500 hover:text-red-400' : 'text-slate-400 hover:text-red-500']"
-                 >
-                   <Clock class="w-3 h-3" />
-                   Reset Dashboard Data
-                 </button>
-               </div>
+            </div>
             </div>
 
           </div>
