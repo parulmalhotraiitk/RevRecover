@@ -79,7 +79,7 @@ app.post('/api/run-agent', async (req, res) => {
   console.log("\n🤖 Sending Goal to TinyFish API...");
   
   try {
-    const response = await fetch("https://agent.tinyfish.ai/v1/automation/run", {
+    const response = await fetch("https://agent.tinyfish.ai/v1/automation/run-async", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -87,8 +87,7 @@ app.post('/api/run-agent', async (req, res) => {
       },
       body: JSON.stringify({
         url: targetUrl,
-        goal: goal,
-        stream: false 
+        goal: goal
       })
     });
 
