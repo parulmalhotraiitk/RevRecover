@@ -135,55 +135,80 @@ app.post('/api/run-agent', async (req, res) => {
   const isInternalPortal = targetUrl.includes('localhost') || targetUrl.includes('awsapprunner.com');
 
   const agentPersona = `
-    IDENTIFICATION: RevRecover Autonomous Claims Specialist (v2.0)
-    MISSION: You are an expert in medical billing and insurance adjudication. Your goal is to navigate healthcare portals, identify denied claims, and execute research-backed medical necessity appeals with 100% accuracy and professional clinical language.
-    COMPLIANCE: Maintain strict HIPAA protocols. Use deterministic navigation. Avoid extraneous clicks.
+    ## IDENTIFICATION: RevRecover Autonomous Claims Specialist (v2.0)
+    ## MISSION: Expert-level navigation of healthcare portals to adjudicate denied claims through clinical evidence and professional appeal formalization.
+    
+    ## OPERATIONAL RULES:
+    1. STRICT DETERMINISM: Use specific IDs (#id) whenever provided.
+    2. HIPAA COMPLIANCE: Do not store PII in long-term memory.
+    3. EFFICIENCY: Execute the minimum number of clicks to reach the "Mission Complete" state.
+    4. NO EXTERNAL SEARCH: Unless explicitly specified in Phase 1.
   `;
 
   // Pivot logic: Adapt instructions based on portal "Tier"
   const phase2Goal = isBlueButton 
       ? `
-    PHASE 2: SECURE CMS AUTHORIZATION
-    1. Directly navigate to: ${targetUrl}
-    2. Authenticate with Identity: ${creds.user} | Passkey: ${creds.pass}
-    3. STAY on ${targetUrl}. Do not follow external links to medicare.gov.
-    4. Locate the "Connect", "Authorize", or "Allow" control and execute CLICK.
-    5. Once session state validates or URL redirects, terminate with MISSION COMPLETE.
+    ## PHASE 2: SECURE CMS AUTHORIZATION
+    ### 1. Website Navigation
+    * Navigate to: ${targetUrl}
+    * Authenticate Identity: ${creds.user} | Passkey: ${creds.pass}
+    ### 2. Authorization Execution
+    * STAY on ${targetUrl}. Disregard medicare.gov redirects.
+    * Target text: "Connect", "Authorize", or "Allow".
+    * Finalize: Execute "MISSION COMPLETE" on successful redirect.
     ` 
       : isInternalPortal 
         ? `
-    PHASE 2: INTERNAL SIMULATION RESOLUTION (TURBO)
-    1. Directly navigate to: ${targetUrl}
-    2. LOGIN: Type "${creds.user}" in #username, type "${creds.pass}" in #password, click #login-btn.
-    3. HIPAA: Click #agree-hipaa immediately when it appears.
-    4. SELECT: Click element with ID "drill-down-${claimId}".
-    5. INITIATE: Click #open-appeal-btn.
-    6. FORM: Select "Medical Necessity Documentation Attached" in #appeal-reason-select.
-    7. JUSTIFY: Type "Clinical evidence supports reversal of denial for ${claimId}. Prior auth ${patientContext.priorAuthCode || 'N/A'} is valid." in #appeal-notes-area.
-    8. SUBMIT: Click #submit-appeal-btn. MISSION COMPLETE.
+    ## PHASE 2: INTERNAL SIMULATION RESOLUTION (TURBO)
+    ### 1. Deterministic Authentication
+    * Type "${creds.user}" in #username
+    * Type "${creds.pass}" in #password
+    * Click #login-btn
+    ### 2. Claim Adjudication (Low Latency)
+    * Click element matching: #drill-down-${claimId}
+    * Click: #open-appeal-btn
+    * Selection: Choose "Medical Necessity" in #appeal-reason-select
+    * Narrative: Input "Deterministic clinical reversal requested for ${claimId}. Ref: ${patientContext.priorAuthCode || 'AUTH-SIM-99'}." in #appeal-notes-area
+    * Execute: Click #submit-appeal-btn
+    * Terminate: MISSION COMPLETE
     `
         : `
-    PHASE 2: EXTERNAL PORTAL ADJUDICATION
-    1. Directly navigate to: ${targetUrl}
-    2. Authenticate with Identity: ${creds.user} | Passkey: ${creds.pass}
-    3. Isolate the patient or claim record matching "${claimId}".
-    4. Initiate the "Appeal" or "Resolution" workflow for this specific instance.
-    5. Draft and formalize a medical necessity reconsideration using the clinical research extracted in Phase 1.
-    6. Submit the appeal and terminate with MISSION COMPLETE.
+    ## PHASE 2: EXTERNAL PORTAL ADJUDICATION
+    ### 1. Navigation & Discovery
+    * Navigate to: ${targetUrl}
+    * Authenticate Identity: ${creds.user} | Passkey: ${creds.pass}
+    * SEARCH PRIORITIZATION: 
+      | Priority | Search Term |
+      | -- | -- |
+      | 1. Primary | Claim Reference ID: "${claimId}" |
+      | 2. Secondary | Patient Unique Identifier |
+      | 3. Tertiary | Status: "Denied" + Service Date |
+    ### 2. Appeal Formalization
+    * Trigger entry point: "Appeal", "Reconsideration", or "Review".
+    * Draft medical necessity plea using evidence extracted in Phase 1.
+    * Finalize: Submit and capture confirmation code.
+    ### 3. Error Handling
+    * If 404/Login fail: Retry authentication once.
+    * If claim not found: Perform a broader date search.
+    * MISSION COMPLETE.
     `;
 
   // Construct the "Real Work" Hybrid Goal for the TinyFish Agent
   const researchPhase = (isInternalPortal || isBlueButton || turbo) ? "" : `
-    PHASE 1: CLINICAL RESEARCH (EVIDENCE EXTRACTION)
-    1. Directly navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
-    2. Extract the primary study NCT# and one technical clinical finding.
-    3. Store in local context and transition to Phase 2.
+    ## PHASE 1: CLINICAL RESEARCH (EVIDENCE EXTRACTION)
+    1. Navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
+    2. STANDARDIZATION TABLE:
+       | Requirement | Extraction Logic |
+       | -- | -- |
+       | Study ID | NCT# (Primary Study) |
+       | Evidence | Most significant clinical outcome sentence |
+    3. Store findings in local session context.
   `;
 
   const goal = `
     ${agentPersona}
     
-    COMMAND SET: EXECUTE DETERMINISTIC ADJUDICATION
+    ## COMMAND SET: EXECUTE DETERMINISTIC ADJUDICATION
     
     ${researchPhase}
     
