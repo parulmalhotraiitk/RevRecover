@@ -144,7 +144,7 @@ const paginatedClaims = () => {
             <div class="space-y-2">
               <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Identity Identifier (NPI)</label>
               <div class="relative group mt-1">
-                <input v-model="username" type="text" class="legacy-input input-with-icon" placeholder="e.g. admin" />
+                <input id="username" v-model="username" type="text" class="legacy-input input-with-icon" placeholder="e.g. admin" />
                 <User class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors pointer-events-none" :size="18" />
               </div>
             </div>
@@ -152,7 +152,7 @@ const paginatedClaims = () => {
             <div class="space-y-2">
               <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Secure Passkey</label>
               <div class="relative group mt-1">
-                <input v-model="password" type="password" class="legacy-input input-with-icon" placeholder="e.g. password" />
+                <input id="password" v-model="password" type="password" class="legacy-input input-with-icon" placeholder="e.g. password" />
                 <Lock class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors pointer-events-none" :size="18" />
               </div>
             </div>
@@ -165,7 +165,7 @@ const paginatedClaims = () => {
             </div>
 
             <div class="pt-6">
-              <button type="submit" :disabled="isLoggingIn" class="legacy-btn w-full py-4 text-lg shadow-blue-200 disabled:opacity-50 disabled:translate-y-0 relative overflow-hidden group">
+              <button id="login-btn" type="submit" :disabled="isLoggingIn" class="legacy-btn w-full py-4 text-lg shadow-blue-200 disabled:opacity-50 disabled:translate-y-0 relative overflow-hidden group">
                 <div v-if="isLoggingIn" class="absolute inset-0 bg-blue-600 flex items-center justify-center gap-3">
                   <div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                   <span class="italic tracking-widest uppercase font-black text-[10px]">Validating...</span>
@@ -317,7 +317,7 @@ const paginatedClaims = () => {
                   </span>
                 </td>
                 <td class="legacy-td pr-12 text-right py-8">
-                  <button @click="currentScreen='details'; selectedClaimId=claim.id" class="px-6 py-2.5 rounded-xl border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-lg hover:shadow-blue-200 transition-all duration-300 font-black text-[10px] uppercase tracking-[0.2em] group/btn">
+                  <button :id="'drill-down-' + claim.id" @click="currentScreen='details'; selectedClaimId=claim.id" class="px-6 py-2.5 rounded-xl border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-lg hover:shadow-blue-200 transition-all duration-300 font-black text-[10px] uppercase tracking-[0.2em] group/btn">
                     Drill Down
                   </button>
                 </td>
@@ -370,7 +370,7 @@ const paginatedClaims = () => {
                  <p class="text-slate-300 font-mono text-3xl font-black tracking-[0.3em] italic uppercase opacity-60">REF#{{ selectedClaimId }}</p>
                </div>
             </div>
-            <button @click="currentScreen = 'appeal'" class="legacy-btn flex items-center gap-5 px-12 py-7 text-xl tracking-tight rounded-[2rem] w-full xl:w-auto justify-center bg-slate-900 hover:bg-blue-600 shadow-none hover:shadow-2xl hover:shadow-blue-200 uppercase font-black tracking-widest text-[12px]">
+            <button id="open-appeal-btn" @click="currentScreen = 'appeal'" class="legacy-btn flex items-center gap-5 px-12 py-7 text-xl tracking-tight rounded-[2rem] w-full xl:w-auto justify-center bg-slate-900 hover:bg-blue-600 shadow-none hover:shadow-2xl hover:shadow-blue-200 uppercase font-black tracking-widest text-[12px]">
               <FileWarning :size="24" class="text-red-400" /> Open Intent to Appeal Workflow
             </button>
           </div>
@@ -526,7 +526,7 @@ const paginatedClaims = () => {
                 Primary Justification Category <span class="text-red-500 font-black">*</span>
               </label>
               <div class="relative group/field shadow-2xl shadow-slate-200/40 rounded-[1.5rem]">
-                <select v-model="appealReason" class="legacy-input appearance-none pr-16 text-lg font-black text-slate-800 bg-white border-white py-6 rounded-[1.5rem] cursor-pointer" required>
+                <select id="appeal-reason-select" v-model="appealReason" class="legacy-input appearance-none pr-16 text-lg font-black text-slate-800 bg-white border-white py-6 rounded-[1.5rem] cursor-pointer" required>
                   <option value="" disabled selected>-- Categorize Official Adjudication Challenge --</option>
                   <option>Medical Necessity Documentation Attached</option>
                   <option>Proof of Prior Authorization Attached</option>
@@ -546,7 +546,7 @@ const paginatedClaims = () => {
                    <ShieldCheck :size="20" class="text-blue-600" /> Required: Authenticated Authorization Certificate Number <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
-                  <input type="text" class="legacy-input w-full font-mono uppercase tracking-[0.4em] text-3xl font-black border-white bg-white focus:ring-blue-100 py-8 rounded-[1.5rem] shadow-xl" placeholder="AUTH-X-XXXX" required />
+                  <input id="auth-code-input" type="text" class="legacy-input w-full font-mono uppercase tracking-[0.4em] text-3xl font-black border-white bg-white focus:ring-blue-100 py-8 rounded-[1.5rem] shadow-xl" placeholder="AUTH-X-XXXX" required />
                   <div class="absolute right-6 top-6 opacity-10 group-focus-within:opacity-100 transition-all duration-700 scale-150">
                     <Database :size="28" class="text-blue-600" />
                   </div>
@@ -562,11 +562,11 @@ const paginatedClaims = () => {
                 <div class="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
                 Clinical Supporting Narrative <span class="text-red-500 font-black">*</span>
               </label>
-              <textarea v-model="additionalComments" rows="10" class="legacy-input w-full p-10 resize-none text-xl font-bold leading-[1.8] bg-white border-white rounded-[2rem] shadow-2xl shadow-slate-200/40 placeholder:opacity-20 italic font-serif" required placeholder="Detail the medical evidence proving administrative compliance or clinical necessity..."></textarea>
+              <textarea id="appeal-notes-area" v-model="additionalComments" rows="10" class="legacy-input w-full p-10 resize-none text-xl font-bold leading-[1.8] bg-white border-white rounded-[2rem] shadow-2xl shadow-slate-200/40 placeholder:opacity-20 italic font-serif" required placeholder="Detail the medical evidence proving administrative compliance or clinical necessity..."></textarea>
             </div>
 
             <div class="pt-10 flex flex-col xl:flex-row gap-8">
-              <button type="submit" class="legacy-btn flex-1 py-10 text-2xl flex items-center justify-center gap-6 rounded-[2rem] shadow-[0_30px_60px_-15px_rgba(37,99,235,0.4)] bg-blue-600 hover:bg-slate-900 transition-all duration-1000 group/submit">
+              <button id="submit-appeal-btn" type="submit" class="legacy-btn flex-1 py-10 text-2xl flex items-center justify-center gap-6 rounded-[2rem] shadow-[0_30px_60px_-15px_rgba(37,99,235,0.4)] bg-blue-600 hover:bg-slate-900 transition-all duration-1000 group/submit">
                 <Send :size="32" class="group-hover/submit:rotate-[45deg] group-hover/submit:-translate-y-2 group-hover/submit:translate-x-2 transition-all duration-700" /> 
                 <span class="uppercase font-black tracking-widest text-lg">Transmit High-Priority Appeal</span>
               </button>

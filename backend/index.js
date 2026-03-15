@@ -154,12 +154,13 @@ app.post('/api/run-agent', async (req, res) => {
         ? `
     PHASE 2: INTERNAL SIMULATION RESOLUTION (TURBO)
     1. Directly navigate to: ${targetUrl}
-    2. Authenticate with Identity: ${creds.user} | Passkey: ${creds.pass}
-    3. STAY on ${targetUrl}. Disregard navigation menus.
-    4. Target element ID "btn-resolve-${claimId}" and execute immediate ACTION.
-    5. In "Clinical Justification" field, input the following technical statement: 
-       "Medical necessity established per clinical guidelines for ${denialReason}. Prior authorization reference ${patientContext.priorAuthCode || 'N/A'} is associated with this encounter. Requesting immediate reversal of denial."
-    6. Execute "submit-btn" interaction. Terminate with MISSION COMPLETE.
+    2. LOGIN: Type "${creds.user}" in #username, type "${creds.pass}" in #password, click #login-btn.
+    3. HIPAA: Click #agree-hipaa immediately when it appears.
+    4. SELECT: Click element with ID "drill-down-${claimId}".
+    5. INITIATE: Click #open-appeal-btn.
+    6. FORM: Select "Medical Necessity Documentation Attached" in #appeal-reason-select.
+    7. JUSTIFY: Type "Clinical evidence supports reversal of denial for ${claimId}. Prior auth ${patientContext.priorAuthCode || 'N/A'} is valid." in #appeal-notes-area.
+    8. SUBMIT: Click #submit-appeal-btn. MISSION COMPLETE.
     `
         : `
     PHASE 2: EXTERNAL PORTAL ADJUDICATION
