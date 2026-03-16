@@ -140,7 +140,7 @@ function buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, pati
       '- Wait for the button to show SENT SUCCESSFULLY',
       '',
       'STEP ' + (s+3) + ' — Return:',
-      'Return JSON: { "status": "appeal_submitted", "claimId": "' + claimId + '" }'
+      'Return JSON: { "status": "appeal_submitted", "claimId": "' + claimId + '", "justification": "' + notesStr + '" }'
     ].join('\n');
   }
 
@@ -201,7 +201,7 @@ function buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, pati
     '',
     'STEP ' + (s+3) + ' — Confirm:',
     '- Wait for a confirmation number or success message',
-    'Return JSON: { "status": "appeal_submitted", "claimId": "' + claimId + '", "payer": "' + payer + '", "confirmation": "<text>" }'
+    'Return JSON: { "status": "appeal_submitted", "claimId": "' + claimId + '", "payer": "' + payer + '", "confirmation": "<text>", "justification": "' + justification + '" }'
   ].join('\n');
 }
 

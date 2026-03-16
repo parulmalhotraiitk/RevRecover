@@ -25,6 +25,9 @@ graph TD
     Backend -- "Success Sync" --> Dashboard
 ```
 
+### 🧠 Audit Intelligence
+The dashboard includes an **Audit History** tab that provides full transparency into the agent's actions. It automatically parses the agent's end-to-end execution data to extract and display the exact clinical justification logic written by the agent during the appeal submission, complete with referenced trial data.
+
 ### ⚡ Async Polling Architecture
 To ensure reliability on the cloud (AWS App Runner), the platform uses a **True Asynchronous** orchestration pattern. 
 - The Backend initiates the agent and returns a `run_id` immediately.
