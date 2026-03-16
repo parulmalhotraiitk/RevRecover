@@ -105,12 +105,12 @@ function buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, pati
   if (isInternalPortal) {
     const researchStep = turbo ? '' : [
       '',
-      'STEP 1 — Medical Necessity Research:',
+      'STEP 1 — Medical Necessity Research (do before logging in):',
       '- Open a new tab and go to: https://clinicaltrials.gov/search?term=' + encodeURIComponent(denialReason),
       '- Find the first clinical trial result.',
       '- Read the details to extract the NCT# and one sentence demonstrating clinical utility/evidence.',
       '- Store both the NCT# and evidence sentence in memory.',
-      '- Close the tab and return to the AetnaCare Provider Portal tab.',
+      '- Close the tab and return to the Provider Portal tab.',
       ''
     ].join('\n');
 
@@ -120,26 +120,31 @@ function buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, pati
       : 'Medical necessity confirmed for claim ' + claimId + '. Supporting clinical evidence [insert NCT# from Step 1]: [insert your evidence sentence from Step 1]. Auth ref: ' + (patientContext.priorAuthCode || 'AUTH-PENDING') + '. Requesting immediate reversal of denial.';
 
     return [
-      'The page is already loaded. This is the AetnaCare Provider Portal claims table.',
-      'There is NO login on this portal. You are already authenticated as Dr. Sarah Miller.',
-      'DO NOT try to log in, log out, or navigate away from this page.',
+      'The page is already loaded. This is the AetnaCare Provider Portal.',
+      'Task: Log in, locate claim ' + claimId + ', and submit a clinical appeal.',
       researchStep,
       'YOUR TASK — complete these steps in order:',
       '',
-      'STEP ' + s + ' — Click the Resolve Now button:',
+      'STEP ' + s + ' — Secure Sign In:',
+      '- Type "admin" into the username / Provider ID field',
+      '- Type "password" into the Secure Password field',
+      '- Click the "Secure Sign In" button to enter the dashboard',
+      '- Wait for the Claims Management Inbox to load',
+      '',
+      'STEP ' + (s+1) + ' — Click the Resolve Now button:',
       '- Locate the button with id="btn-resolve-' + claimId + '" in the claims table',
       '- Click it immediately. A modal dialog will appear.',
       '',
-      'STEP ' + (s+1) + ' — Fill in the appeal text:',
+      'STEP ' + (s+2) + ' — Fill in the appeal text:',
       '- The modal is open with a textarea (id="appeal-text")',
       '- Click inside the textarea to focus it',
       '- Type exactly: ' + notesStr,
       '',
-      'STEP ' + (s+2) + ' — Submit:',
+      'STEP ' + (s+3) + ' — Submit:',
       '- Click the button with id="submit-btn" (labeled Submit Clinical Review)',
       '- Wait for the button to show SENT SUCCESSFULLY',
       '',
-      'STEP ' + (s+3) + ' — Return:',
+      'STEP ' + (s+4) + ' — Return:',
       'Return JSON: { "status": "appeal_submitted", "claimId": "' + claimId + '", "justification": "' + notesStr + '" }'
     ].join('\n');
   }
