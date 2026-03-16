@@ -187,8 +187,9 @@
             }
         }
 
-        // Poll every 3 seconds for "Live Sync" effect
-        setInterval(fetchClaims, 3000);
+        // Fetch claims once on load.
+        // Removed setInterval polling because rebuilding the DOM every 3s
+        // breaks automated agent clicks (stale element reference).
         fetchClaims();
     </script>
 </body>
