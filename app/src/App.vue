@@ -703,7 +703,7 @@ const toggleFaq = (index) => {
             <!-- Footer Action Area -->
             <div :class="['p-6 border-t mt-auto transition-colors duration-300', isDark ? 'border-[#1E293B] bg-[#0A0C10]' : 'border-slate-100 bg-slate-50/50']">
                <button 
-                 v-if="agentStatus === 'idle' || agentStatus === 'error'"
+                 v-if="(agentStatus === 'idle' || agentStatus === 'error') && selectedClaim.status === 'Denied'"
                  @click="handleRunAgent"
                  :class="['w-full relative group overflow-hidden rounded-xl font-bold py-3.5 px-6 shadow-xl transition-all duration-300 flex items-center justify-between', isDark ? 'bg-gradient-to-r from-white to-slate-200 text-slate-900 shadow-[0_0_40px_rgba(255,255,255,0.1)]' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/20 hover:from-blue-700 hover:to-indigo-700']"
                >
