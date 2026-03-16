@@ -60,6 +60,11 @@ app.get('/portal', (req, res) => {
   res.sendFile(path.join(__dirname, 'simulation-portal.html'));
 });
 
+// Redirect logout to portal to prevent 404s if agent wanders
+app.get('/portal/logout', (req, res) => {
+  res.redirect('/portal');
+});
+
 // Portal Sync Endpoints
 app.get('/api/portal-claims', (req, res) => {
   res.json({ claims: portalState, agentSessionActive });
@@ -95,102 +100,95 @@ function buildGoal({ claimId, payer, denialReason, turbo, targetUrl, creds, pati
   const isBlueButton = payer.toUpperCase().includes('MEDICARE') || payer.toUpperCase().includes('CMS');
   const isInternalPortal = targetUrl.includes('localhost') || targetUrl.includes('awsapprunner.com');
 
-  // KEY INSIGHT: TinyFish already navigates to targetUrl before running this goal.
-  // Do NOT instruct the agent to "go to URL" - it starts there. Go straight to actions.
-
-  if (isBlueButton) {
-    return `You are already on the CMS Blue Button authorization page.
-Task: Authorize the data connection for the RevRecover system.
-
-Step 1 - Check current state of the page. Look for a login form.
-Step 2 - If a login form is present:
-  - Type "${creds.user}" into the username/email field
-  - Type "${creds.pass}" into the password field
-  - Click the login/submit button
-  - Wait for the page to update after login
-Step 3 - Find a button or link labeled "Connect", "Authorize", or "Allow". Click it.
-Step 4 - Wait for a success indication (URL change or on-screen success message).
-Return: { "status": "authorized", "message": "<any text confirming success>" }`;
-  }
-
+  // INTERNAL SIMULATION PORTAL (simulation-portal.html)
+  // NO login on this portal. Claims table is immediately visible.
+  // Correct button IDs: btn-resolve-{claimId}, appeal-text, submit-btn
   if (isInternalPortal) {
-    return `You are already on the AetnaCare Provider Portal login page at ${targetUrl}.
-Task: Log in, dismiss the HIPAA modal, find claim ${claimId}, and submit a medical necessity appeal.
-IMPORTANT: Use ONLY the exact element IDs listed. Do not improvise or look for elements by text.
-
-STEP 1 — Login:
-- Find the login form. It is already visible on the current page.
-- Type "${creds.user}" into the input with id="username"
-- Type "${creds.pass}" into the input with id="password"
-- Click the button with id="login-btn"
-- Pause and wait for the page to fully transition (a new screen or overlay will appear)
-
-STEP 2 — HIPAA Acknowledgment Modal:
-- After login, a modal dialog WILL appear. It is a legal/compliance popup.
-- DO NOT try to skip it or click anywhere else first.
-- Click the button with id="agree-hipaa" to accept and dismiss it.
-- Wait until the modal is fully gone and the dashboard is visible behind it.
-
-STEP 3 — Locate the Claim:
-- The claims table is now visible on the dashboard.
-- Find the row for claim ${claimId}.
-- Click the button with id="drill-down-${claimId}"
-- Wait for the claim detail page to finish loading.
-
-STEP 4 — Open the Appeal Form:
-- Click the button with id="open-appeal-btn"
-- Wait for the appeal form panel or modal to appear.
-
-STEP 5 — Complete the Appeal Form:
-- In the dropdown/select with id="appeal-reason-select", choose the option "Medical Necessity Documentation Attached"
-- In the textarea with id="appeal-notes-area", type exactly: "Clinical medical necessity confirmed for claim ${claimId}. Authorization reference: ${patientContext.priorAuthCode || 'AUTH-PENDING'}. Services rendered are consistent with patient diagnosis and established clinical criteria. Requesting immediate reversal of denial."
-- Click the button with id="submit-appeal-btn"
-- Wait for the success confirmation screen to appear.
-
-STEP 6 — Return Result:
-Return JSON: { "status": "appeal_submitted", "claimId": "${claimId}", "message": "<any confirmation text visible on screen after submission>" }`;
+    const appealText = 'Medical necessity confirmed for claim ' + claimId + '. Auth ref: ' + (patientContext.priorAuthCode || 'AUTH-PENDING') + '. Clinical criteria fully met. Requesting immediate reversal of denial.';
+    return [
+      'The page is already loaded. This is the AetnaCare Provider Portal claims table.',
+      'There is NO login on this portal. You are already authenticated as Dr. Sarah Miller.',
+      'DO NOT try to log in, log out, or navigate away from this page.',
+      '',
+      'YOUR TASK — complete these steps in order:',
+      '',
+      'STEP 1 — Click the Resolve Now button:',
+      '- Locate the button with id="btn-resolve-' + claimId + '" in the claims table',
+      '- Click it immediately. A modal dialog will appear.',
+      '',
+      'STEP 2 — Fill in the appeal text:',
+      '- The modal is open with a textarea (id="appeal-text")',
+      '- Click inside the textarea to focus it',
+      '- Type exactly: ' + appealText,
+      '',
+      'STEP 3 — Submit:',
+      '- Click the button with id="submit-btn" (labeled Submit Clinical Review)',
+      '- Wait for the button to show SENT SUCCESSFULLY',
+      '',
+      'STEP 4 — Return:',
+      'Return JSON: { "status": "appeal_submitted", "claimId": "' + claimId + '" }'
+    ].join('\n');
   }
 
-  // External real payer portal
-  const researchStep = turbo ? '' : `
+  // CMS / MEDICARE
+  if (isBlueButton) {
+    return [
+      'The page is already loaded. This is a CMS Medicare authorization page.',
+      'Task: Authorize the data connection.',
+      '',
+      'STEP 1 — If a login form is visible:',
+      '- Type "' + creds.user + '" into the username field',
+      '- Type "' + creds.pass + '" into the password field',
+      '- Click the login button and wait for redirect.',
+      '',
+      'STEP 2 — Click the authorization button:',
+      '- Find "Connect", "Authorize", or "Allow" and click it.',
+      '',
+      'Return JSON: { "status": "authorized", "message": "<confirmation text>" }'
+    ].join('\n');
+  }
 
-STEP 1 — Clinical Evidence Research (do this first, before logging in):
-- Navigate to: https://clinicaltrials.gov/search?term=${encodeURIComponent(denialReason)}
-- Locate the first relevant clinical trial in the search results.
-- Extract and memorize: (a) the NCT# identifier, (b) one key clinical outcome sentence.
-- After extracting, close the research tab or navigate back to the portal.`;
+  // EXTERNAL REAL PAYER PORTAL
+  const researchStep = turbo ? '' : [
+    '',
+    'STEP 1 — Research (do before logging in):',
+    '- Go to: https://clinicaltrials.gov/search?term=' + encodeURIComponent(denialReason),
+    '- Extract the NCT# and one clinical outcome sentence from the first result.',
+    '- Navigate back to the portal tab.',
+    ''
+  ].join('\n');
 
   const s = turbo ? 1 : 2;
+  const justification = turbo
+    ? 'Medical necessity established for claim ' + claimId + '. Auth ref: ' + (patientContext.priorAuthCode || 'N/A') + '. Criteria met. Requesting reversal.'
+    : 'Medical necessity established for claim ' + claimId + '. Evidence [NCT from Step 1]: [outcome sentence]. Auth ref: ' + (patientContext.priorAuthCode || 'N/A') + '. Requesting reversal.';
 
-  return `You are already on the ${payer} provider portal at ${targetUrl}.
-Task: Log in, find claim ${claimId}, and file a medical necessity appeal.${researchStep}
-
-STEP ${s} — Login:
-- The login page is currently visible.
-- Type "${creds.user}" into the username, NPI, or Provider ID field.
-- Type "${creds.pass}" into the password field.
-- Click the login or sign-in button.
-- Handle any popups (HIPAA acknowledgment, MFA prompts, terms of use) by accepting/agreeing.
-- Wait until the main portal dashboard or claims list loads.
-
-STEP ${s + 1} — Find Claim ${claimId}:
-- Look for a search bar, claims inquiry section, or remittance lookup.
-- Search for claim ID "${claimId}" directly.
-- If not found, filter or browse claims with status "Denied" and locate "${claimId}".
-- Click into the claim to open its detail view.
-
-STEP ${s + 2} — File Medical Necessity Appeal:
-- Find the "Appeal", "Request Reconsideration", "Dispute", or "Reopen" option for this claim.
-- Set the appeal reason/category to "Medical Necessity".
-- In the notes or justification field, type:
-  "${turbo
-    ? `Medical necessity is established for claim ${claimId}. Prior authorization ref: ${patientContext.priorAuthCode || 'N/A'}. Clinical criteria are fully met. Requesting immediate reversal of denial.`
-    : `Medical necessity is established for claim ${claimId}. Clinical evidence from trial [NCT from Step 1]: [evidence sentence from Step 1]. Prior authorization ref: ${patientContext.priorAuthCode || 'N/A'}. Requesting immediate reversal of denial.`}"
-- Submit the form.
-
-STEP ${s + 3} — Confirm Submission:
-- Wait for a confirmation number, reference ID, or on-screen success message.
-Return JSON: { "status": "appeal_submitted", "claimId": "${claimId}", "payer": "${payer}", "confirmation": "<confirmation number or message text>" }`;
+  return [
+    'The page is already loaded. This is the ' + payer + ' provider portal.',
+    'Task: Log in, find claim ' + claimId + ', and submit a medical necessity appeal.',
+    researchStep,
+    'STEP ' + s + ' — Login:',
+    '- Enter "' + creds.user + '" in the username / Provider ID field',
+    '- Enter "' + creds.pass + '" in the password field',
+    '- Click the login button',
+    '- Accept any HIPAA, MFA, or terms popups by agreeing/accepting',
+    '- Wait for the dashboard to fully load',
+    '',
+    'STEP ' + (s+1) + ' — Find Claim ' + claimId + ':',
+    '- Search for "' + claimId + '" using claims search or lookup',
+    '- If not found by ID, filter by Denied status and find "' + claimId + '"',
+    '- Open the claim detail view',
+    '',
+    'STEP ' + (s+2) + ' — File the Appeal:',
+    '- Find the Appeal / Reconsideration / Dispute option',
+    '- Set reason to Medical Necessity',
+    '- In the notes field type: ' + justification,
+    '- Submit the form',
+    '',
+    'STEP ' + (s+3) + ' — Confirm:',
+    '- Wait for a confirmation number or success message',
+    'Return JSON: { "status": "appeal_submitted", "claimId": "' + claimId + '", "payer": "' + payer + '", "confirmation": "<text>" }'
+  ].join('\n');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
