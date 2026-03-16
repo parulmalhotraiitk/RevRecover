@@ -46,6 +46,7 @@
         <div class="flex items-center gap-4 text-sm font-medium">
             <span>Welcome, Dr. Sarah Miller</span>
             <div class="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center border border-blue-400">SM</div>
+            <button onclick="handleLogout()" class="ml-2 px-3 py-1 bg-blue-800 border border-blue-600 rounded hover:bg-blue-900 transition text-xs font-bold shadow-sm">Logout</button>
         </div>
     </nav>
 
@@ -127,6 +128,13 @@
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
             }
+        }
+
+        function handleLogout() {
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('login-overlay').classList.remove('hidden');
+            document.getElementById('claims-table-body').innerHTML = '<tr><td colspan="4" class="px-8 py-10 text-center text-gray-400">Initializing Portal Database...</td></tr>';
         }
 
         async function fetchClaims() {
