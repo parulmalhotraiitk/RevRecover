@@ -48,41 +48,102 @@ process.on('unhandledRejection', (reason, promise) => {
 const AGENTOPS_KEY = process.env.AGENTOPS_API_KEY;
 const agentOpsSessions = {};
 
+/**
+ * Sends a manual OTLP trace to AgentOps v3
+ */
+async function sendAgentOpsTrace(token, { runId, eventName, status, result, tags = [] }) {
+  try {
+    const traceId = runId.replace(/-/g, '').padEnd(32, '0').substring(0, 32);
+    const spanId = Math.random().toString(16).substring(2, 10).padStart(16, '0');
+
+    const res = await fetch('https://otlp.agentops.ai/v1/traces', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        resourceSpans: [{
+          resource: { 
+            attributes: [
+              { key: "service.name", value: { stringValue: "RevRecover" } },
+              { key: "service.version", value: { stringValue: buildInfo.timestamp } }
+            ] 
+          },
+          scopeSpans: [{
+            spans: [{
+              traceId,
+              spanId,
+              name: eventName,
+              kind: 1, // INTERNAL
+              startTimeUnixNano: (Date.now() - 500) * 1000000 + "",
+              endTimeUnixNano: Date.now() * 1000000 + "",
+              attributes: [
+                { key: "agentops.session.id", value: { stringValue: runId } },
+                { key: "agentops.end_state", value: { stringValue: status || 'Unset' } },
+                ...tags.map(t => ({ key: "agentops.tag", value: { stringValue: t } }))
+              ]
+            }]
+          }]
+        }]
+      })
+    });
+    
+    if (!res.ok) {
+      console.warn(`[AgentOps] Trace failed: ${res.status} - ${await res.text()}`);
+    } else {
+      console.log(`📊 [AgentOps] Trace sent: ${eventName} (${runId})`);
+    }
+  } catch (e) {
+    console.warn('[AgentOps] Trace network error:', e.message);
+  }
+}
+
 async function agentOpsStart(runId, claimId, payer) {
   if (!AGENTOPS_KEY) return;
   try {
-    const res = await fetch('https://api.agentops.ai/v2/create_session', {
+    // 1. Get JWT from v3 auth endpoint
+    const authRes = await fetch('https://api.agentops.ai/v3/auth/token', {
       method: 'POST',
-      headers: { 'X-Agentops-Api-Key': AGENTOPS_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: runId,
-        tags: ['revrecover', 'medical-appeals', payer, claimId],
-        host_env: { service: 'RevRecover', version: buildInfo.timestamp }
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: AGENTOPS_KEY })
     });
-    if (res.ok) {
-      agentOpsSessions[runId] = { sessionId: runId };
-      console.log(`📊 [AgentOps] Session started: ${runId}`);
+    
+    if (!authRes.ok) {
+        console.warn("[AgentOps] Auth failed (v3):", authRes.status);
+        return;
     }
-  } catch (e) { console.warn('[AgentOps] Session start failed (non-critical):', e.message); }
+    
+    const { token } = await authRes.json();
+    agentOpsSessions[runId] = { token };
+    console.log(`📊 [AgentOps] Authenticated (v3) for run: ${runId}`);
+
+    // 2. Send Start Trace
+    await sendAgentOpsTrace(token, {
+      runId,
+      eventName: 'run_started',
+      tags: ['revrecover', 'medical-appeals', payer, claimId]
+    });
+
+  } catch (e) { console.warn('[AgentOps] Session start failed:', e.message); }
 }
 
 async function agentOpsEnd(runId, status, result) {
-  if (!AGENTOPS_KEY || !agentOpsSessions[runId]) return;
+  const session = agentOpsSessions[runId];
+  if (!AGENTOPS_KEY || !session) return;
+  
   try {
-    await fetch('https://api.agentops.ai/v2/update_session', {
-      method: 'POST',
-      headers: { 'X-Agentops-Api-Key': AGENTOPS_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: runId,
-        end_state: status === 'completed' ? 'Success' : 'Fail',
-        end_state_reason: result || status,
-        tags: ['revrecover', status]
-      })
+    await sendAgentOpsTrace(session.token, {
+      runId,
+      eventName: 'run_completed',
+      status: status === 'completed' ? 'Success' : 'Fail',
+      result: result || status,
+      tags: ['revrecover', status]
     });
+    
     delete agentOpsSessions[runId];
     console.log(`📊 [AgentOps] Session ended: ${runId} → ${status}`);
-  } catch (e) { console.warn('[AgentOps] Session end failed (non-critical):', e.message); }
+  } catch (e) { console.warn('[AgentOps] Session end failed:', e.message); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
