@@ -41,6 +41,69 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('🔥 UNHANDLED REJECTION:', reason);
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTNER STACK: AgentOps — Agent session observability
+// Docs: https://docs.agentops.ai
+// ─────────────────────────────────────────────────────────────────────────────
+const AGENTOPS_KEY = process.env.AGENTOPS_API_KEY;
+const agentOpsSessions = {};
+
+async function agentOpsStart(runId, claimId, payer) {
+  if (!AGENTOPS_KEY) return;
+  try {
+    const res = await fetch('https://api.agentops.ai/v2/create_session', {
+      method: 'POST',
+      headers: { 'X-Agentops-Api-Key': AGENTOPS_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: runId,
+        tags: ['revrecover', 'medical-appeals', payer, claimId],
+        host_env: { service: 'RevRecover', version: buildInfo.timestamp }
+      })
+    });
+    if (res.ok) {
+      agentOpsSessions[runId] = { sessionId: runId };
+      console.log(`📊 [AgentOps] Session started: ${runId}`);
+    }
+  } catch (e) { console.warn('[AgentOps] Session start failed (non-critical):', e.message); }
+}
+
+async function agentOpsEnd(runId, status, result) {
+  if (!AGENTOPS_KEY || !agentOpsSessions[runId]) return;
+  try {
+    await fetch('https://api.agentops.ai/v2/update_session', {
+      method: 'POST',
+      headers: { 'X-Agentops-Api-Key': AGENTOPS_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: runId,
+        end_state: status === 'completed' ? 'Success' : 'Fail',
+        end_state_reason: result || status,
+        tags: ['revrecover', status]
+      })
+    });
+    delete agentOpsSessions[runId];
+    console.log(`📊 [AgentOps] Session ended: ${runId} → ${status}`);
+  } catch (e) { console.warn('[AgentOps] Session end failed (non-critical):', e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTNER STACK: Axiom — Structured observability logs
+// Docs: https://axiom.co/docs/send-data/ingest
+// ─────────────────────────────────────────────────────────────────────────────
+const AXIOM_KEY = process.env.AXIOM_API_KEY;
+const AXIOM_DATASET = process.env.AXIOM_DATASET || 'revrecover-logs';
+
+async function axiomLog(event, data) {
+  if (!AXIOM_KEY) return;
+  try {
+    await fetch(`https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AXIOM_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([{ _time: new Date().toISOString(), event, ...data }])
+    });
+  } catch (e) { console.warn('[Axiom] Log failed (non-critical):', e.message); }
+}
+
+
 // Root route for verification
 app.get('/', (req, res) => {
   res.send('<h1>🚀 RevRecover Agentic Backend is LIVE</h1><p>The Brain is active and waiting for TinyFish orchestration.</p>');
@@ -299,6 +362,10 @@ app.post('/api/run-agent', async (req, res) => {
     const runId = data.run_id || data.id;
     console.log(`✅ Agent started. runId=${runId}`);
 
+    // Partner Stack: AgentOps + Axiom telemetry (fire-and-forget)
+    agentOpsStart(runId, claimId, payer);
+    axiomLog('run_started', { runId, claimId, payer, mode: turbo ? 'turbo' : 'full', targetUrl });
+
     res.json({ success: true, runId, message: 'Agent started successfully.' });
 
   } catch (err) {
@@ -335,6 +402,9 @@ app.get('/api/check-run/:id', async (req, res) => {
 
     if (normalizedStatus === 'completed' || normalizedStatus === 'failed') {
       agentSessionActive = false;
+      // Partner Stack: AgentOps + Axiom telemetry (fire-and-forget)
+      agentOpsEnd(id, normalizedStatus, data.result);
+      axiomLog('run_completed', { runId: id, status: normalizedStatus, result: data.result });
     }
 
     console.log(`[POLL] Run ${id}: TinyFish reported '${data.status}', normalized to '${normalizedStatus}'`);

@@ -138,6 +138,49 @@ const isDark = ref(true);
 const isTurbo = ref(false); // Turbo OFF by default for full research
 const activeTab = ref("queue"); // "queue" or "history"
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTNER STACK: ElevenLabs — Voice announcement after successful appeal
+// Docs: https://elevenlabs.io/docs/api-reference/text-to-speech
+// ─────────────────────────────────────────────────────────────────────────────
+const announceAppealSuccess = async (patientName, amount) => {
+  const text = `Appeal successfully filed for ${patientName}. ${amount} is now under active recovery review by TinyFish.`;
+  const elevenLabsKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+  const voiceId = '21m00Tcm4TlvDq8ikWAM'; // Rachel — natural, professional voice
+
+  if (elevenLabsKey) {
+    try {
+      const audioRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': elevenLabsKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg'
+        },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_turbo_v2',
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+        })
+      });
+      if (audioRes.ok) {
+        const blob = await audioRes.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.play();
+        return;
+      }
+    } catch (e) {
+      console.warn('[ElevenLabs] TTS failed, falling back to browser speech:', e.message);
+    }
+  }
+  // Fallback: browser built-in SpeechSynthesis (works without API key)
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  }
+};
+
 const handleTabSwitch = (tab) => {
   activeTab.value = tab;
   selectedClaim.value = null; // Clear selection to keep UI clean during audit
@@ -313,6 +356,9 @@ const handleRunAgent = async () => {
         }
         
         saveState();
+
+        // Partner Stack: ElevenLabs — Announce success via AI voice
+        announceAppealSuccess(selectedClaim.value.patient, selectedClaim.value.amount);
       } else if (checkData.status === 'failed') {
         isDone = true;
         await addFeedLog(`[ERROR] Agent failed. Check TinyFish dashboard.`, 0);

@@ -84,6 +84,10 @@ For the agent to function in the cloud, you must configure **Environment Variabl
 | **Backend** | `TINYFISH_API_KEY` | Your secret API key. Configure this in Amplify Secrets or App Runner. |
 | **Backend** | `MOCK_PORTAL_URL` | The public URL of your **Enterprise Portal** (provided by Amplify). |
 | **App** | `VITE_API_URL` | The public URL of your **Backend API**. |
+| **Backend** | `AGENTOPS_API_KEY` | *(Partner)* AgentOps session observability — track every agent run. |
+| **Backend** | `AXIOM_API_KEY` | *(Partner)* Axiom structured logging — search and visualize agent logs. |
+| **Backend** | `AXIOM_DATASET` | *(Partner)* Axiom dataset name (default: `revrecover-logs`). |
+| **App** | `VITE_ELEVENLABS_API_KEY` | *(Partner)* ElevenLabs TTS — AI voice announces successful appeals. |
 
 ### 4. Multi-Payer Credential Vault 🔐🏢
 RevRecover uses a secure, dynamic identity system to authenticate against different insurance portals.
