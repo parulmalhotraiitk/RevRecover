@@ -137,10 +137,10 @@ RevRecover is designed to handle multiple roles within the healthcare ecosystem.
 *   **Credentials:** Defaults to `admin` / `password`.
 *   **The Story:** The agent acts as an employee of a hospital. It logs into the provider portal to check claim status, analyzes the denial, and submits a medical-necessity appeal based on real-time research from ClinicalTrials.gov.
 
-### 2. The Medicare Beneficiary (Patient Sandbox)
+### 2. The Medicare Beneficiary (Patient: Ezio Auditore)
 *   **Target:** The official **CMS Blue Button 2.0 Sandbox**.
 *   **Credentials:** `BBUser00000` / `PW00000!` (configured via secure environment variables).
-*   **The Story:** The agent acts as the patient. It navigates the official US Government security infrastructure to "Authorize" RevRecover to access medical records. This proves the agent can handle the most secure, regulated medical sites in the United States.
+*   **The Story:** The agent acts as the patient (**Ezio Auditore**). It navigates the official US Government security infrastructure to "Authorize" RevRecover to access medical records. This proves the agent can handle the most secure, regulated medical sites in the United States.
 
 ---
 
@@ -151,10 +151,13 @@ To demonstrate the agent's ability to interact with an **Official US Government 
     *   `PAYER_BLUEBUTTON_USER` = `BBUser00000`
     *   `PAYER_BLUEBUTTON_PASS` = `PW00000!`
 2.  **Dashboard Setup:** 
-    *   Select a claim in the Dashboard.
+    *   Select **Ezio Auditore** (Claim: `CLM-999-CMS`) from the Dashboard queue.
     *   In the **"Live Agent Mode"** box, paste the **CMS Authorization URL** (e.g., `https://sandbox.bluebutton.cms.gov/testclient/authorize-link-v2`).
 3.  **Execute:** Click **"Automate Appeal with Agent"**.
 4.  **Observe:** The TinyFish agent will traverse to the official CMS login, enter the credentials, and approve the authorization autonomously.
+
+> [!TIP]
+> **For all other patients** (e.g., Eleanor Vance), simply leave the "Live Agent Mode" box empty or use your deployed **Enterprise Portal URL** to demonstrate the insurance appeal workflow.
 
 ---
 
