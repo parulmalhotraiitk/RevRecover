@@ -162,8 +162,11 @@ const announceAppealSuccess = async (patientName, amount) => {
       audio.play();
       return;
     }
+
+    // Non-ok response (e.g. 402 quota exceeded, 503 key not set) — log and fall through to browser speech
+    console.warn(`[ElevenLabs] TTS proxy returned ${audioRes.status}. Falling back to browser speech.`);
   } catch (e) {
-    console.warn('[ElevenLabs] TTS proxy failed, falling back to browser speech:', e.message);
+    console.warn('[ElevenLabs] TTS proxy network error, falling back to browser speech:', e.message);
   }
 
   // Fallback: browser built-in SpeechSynthesis (works without API key)
