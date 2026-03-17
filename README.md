@@ -87,7 +87,7 @@ For the agent to function in the cloud, you must configure **Environment Variabl
 | **Backend** | `AGENTOPS_API_KEY` | *(Partner)* AgentOps session observability — track every agent run. |
 | **Backend** | `AXIOM_API_KEY` | *(Partner)* Axiom structured logging — search and visualize agent logs. |
 | **Backend** | `AXIOM_DATASET` | *(Partner)* Axiom dataset name (default: `revrecover-logs`). |
-| **App** | `VITE_ELEVENLABS_API_KEY` | *(Partner)* ElevenLabs TTS — AI voice announces successful appeals. |
+| **Backend** | `ELEVENLABS_API_KEY` | *(Partner)* ElevenLabs TTS — AI voice proxy. Key is **never** sent to the browser. |
 
 ### 4. Multi-Payer Credential Vault 🔐🏢
 RevRecover uses a secure, dynamic identity system to authenticate against different insurance portals.
@@ -116,18 +116,19 @@ Once deployed, the dashboard's "Live Agent Mode" box allows you to specify the t
 
 ## 🔒 Security First: Protecting your Secrets
 
-To ensure your TinyFish API key is never exposed to the public:
+All API keys are held exclusively on the backend (App Runner) and are **never** bundled into the frontend JavaScript.
 
-1.  **Backend Only:** The TinyFish API key is **only** used in the `backend/` folder. It is never sent to or used by the `dashboard/` (frontend).
-2.  **Environment Variables:** I have pre-configured `.gitignore` files in the root and all subdirectories to prevent `.env` files from ever being pushed to GitHub.
-3.  **Amplify Secrets:** When deploying to AWS Amplify, **do not** hardcode the key. Use the [Amplify Secrets Management](https://docs.aws.amazon.com/amplify/latest/userguide/environment-variables.html#secrets) or Environment Variables console.
-4.  **Backend Logging:** The backend logs are configured to notify you if the key is missing, but they will **never** print the actual key to the console or the feed.
+1.  **Backend Only (TinyFish & ElevenLabs):** Both the TinyFish and ElevenLabs API keys live in `backend/` environment variables only. The frontend calls `/api/tts` and `/api/run-agent` — it never touches raw secrets.
+2.  **No `VITE_` secrets:** Any variable prefixed with `VITE_` is baked into the public JS bundle at build time and is visible to all users. No secret keys use this prefix.
+3.  **`.gitignore` pre-configured:** All `.env` files are git-ignored in every subdirectory. Your keys will never be committed to GitHub.
+4.  **Amplify vs App Runner:** Set `VITE_API_URL` in Amplify (frontend — safe, it's just a URL). Set all secret keys (`TINYFISH_API_KEY`, `ELEVENLABS_API_KEY`, etc.) only in **App Runner** (backend).
+5.  **Backend Logging:** The backend will warn if a key is missing but will **never** log the actual key value.
 
-Before pushing to GitHub, run this command to be 100% sure no keys are present:
+Before pushing to GitHub, verify no secrets are present:
 ```bash
-grep -r "TF_" .
+grep -r "API_KEY=" . --include="*.env"
 ```
-*(If it returns only results in your local `.env` and `.env.example`, you are safe!)*
+*(Should return results only from local `.env` files, never from source files.)*
 
 ## 🎭 The Agent's Personas
 RevRecover is designed to handle multiple roles within the healthcare ecosystem. During your demo, you can showcase these two distinct personas:

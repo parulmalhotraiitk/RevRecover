@@ -189,6 +189,57 @@ app.get('/portal/logout', (req, res) => {
   res.redirect('/portal');
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTNER STACK: ElevenLabs — Secure Server-Side TTS Proxy
+// The API key is held only on the backend and never sent to the browser.
+// Frontend calls POST /api/tts with { text, voiceId } and receives audio/mpeg.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/tts', async (req, res) => {
+  const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
+
+  if (!elevenLabsKey) {
+    // Graceful degradation: tell the frontend to use browser speech synthesis
+    return res.status(503).json({ error: 'TTS service not configured.' });
+  }
+
+  const { text, voiceId = '21m00Tcm4TlvDq8ikWAM' } = req.body;
+
+  if (!text || typeof text !== 'string' || text.trim().length === 0) {
+    return res.status(400).json({ error: 'text field is required.' });
+  }
+
+  try {
+    const audioRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': elevenLabsKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: text.trim(),
+        model_id: 'eleven_turbo_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+      })
+    });
+
+    if (!audioRes.ok) {
+      const errText = await audioRes.text();
+      console.warn(`[ElevenLabs] TTS API error ${audioRes.status}: ${errText}`);
+      return res.status(audioRes.status).json({ error: 'ElevenLabs API error.' });
+    }
+
+    // Stream audio back to the frontend
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    audioRes.body.pipe(res);
+
+  } catch (err) {
+    console.error('[ElevenLabs] TTS proxy error:', err.message);
+    res.status(500).json({ error: 'TTS proxy failed.' });
+  }
+});
+
 // Portal Sync Endpoints
 app.get('/api/portal-claims', (req, res) => {
   res.json({ claims: portalState, agentSessionActive });

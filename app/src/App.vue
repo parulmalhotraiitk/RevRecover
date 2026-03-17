@@ -140,39 +140,32 @@ const activeTab = ref("queue"); // "queue" or "history"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PARTNER STACK: ElevenLabs — Voice announcement after successful appeal
+// Key is held securely on the backend. Frontend calls /api/tts proxy.
 // Docs: https://elevenlabs.io/docs/api-reference/text-to-speech
 // ─────────────────────────────────────────────────────────────────────────────
 const announceAppealSuccess = async (patientName, amount) => {
   const text = `Appeal successfully filed for ${patientName}. ${amount} is now under active recovery review by TinyFish.`;
-  const elevenLabsKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
   const voiceId = '21m00Tcm4TlvDq8ikWAM'; // Rachel — natural, professional voice
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-  if (elevenLabsKey) {
-    try {
-      const audioRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': elevenLabsKey,
-          'Content-Type': 'application/json',
-          'Accept': 'audio/mpeg'
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_turbo_v2',
-          voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-        })
-      });
-      if (audioRes.ok) {
-        const blob = await audioRes.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.play();
-        return;
-      }
-    } catch (e) {
-      console.warn('[ElevenLabs] TTS failed, falling back to browser speech:', e.message);
+  try {
+    const audioRes = await fetch(`${apiBaseUrl}/api/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voiceId })
+    });
+
+    if (audioRes.ok) {
+      const blob = await audioRes.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+      return;
     }
+  } catch (e) {
+    console.warn('[ElevenLabs] TTS proxy failed, falling back to browser speech:', e.message);
   }
+
   // Fallback: browser built-in SpeechSynthesis (works without API key)
   if ('speechSynthesis' in window) {
     const utterance = new SpeechSynthesisUtterance(text);
