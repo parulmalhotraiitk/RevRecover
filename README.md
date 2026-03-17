@@ -8,7 +8,7 @@ Medical billing specialists spend hours manually logging into insurance portals 
 ## 🛡️ Architecture
 The suite consists of three core components:
 
-1.  **[RevRecover App](./app):** A premium React/Vite command center where specialists manage denials and trigger agents.
+1.  **[RevRecover App](./app):** A premium Vue/Vite command center where specialists manage denials and trigger agents.
 2.  **[Agent Backend](./backend):** The orchestration layer that connects the dashboard to the TinyFish Web Agent API.
 3.  **[Enterprise Portal](./enterprise-portal):** A high-fidelity insurance portal simulation built to prove the agent's ability to handle complex, messy web UIs.
 
