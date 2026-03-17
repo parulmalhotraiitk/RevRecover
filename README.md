@@ -144,8 +144,8 @@ RevRecover is designed to handle multiple roles within the healthcare ecosystem.
 
 ---
 
-## 🎖️ The "God Tier" Move: Live Medicare Demo
-To win the hackathon by showing the agent interacting with an **Official US Government Site**:
+## 🎖️ Enterprise Proof: Live Medicare Demo
+To demonstrate the agent's ability to interact with an **Official US Government Site**:
 
 1.  **Set Credentials in AWS:**
     *   `PAYER_BLUEBUTTON_USER` = `BBUser00000`
