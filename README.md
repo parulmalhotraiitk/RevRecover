@@ -119,7 +119,7 @@ Once deployed, the dashboard's "Live Agent Mode" box allows you to specify the t
 All API keys are held exclusively on the backend (App Runner) and are **never** bundled into the frontend JavaScript.
 
 1.  **Backend Only (TinyFish & ElevenLabs):** Both the TinyFish and ElevenLabs API keys live in `backend/` environment variables only. The frontend calls `/api/tts` and `/api/run-agent` — it never touches raw secrets.
-2.  **No `VITE_` secrets:** Any variable prefixed with `VITE_` is baked into the public JS bundle at build time and is visible to all users. No secret keys use this prefix.
+2.  **No `VITE_` secrets:** Any variable prefixed with `VITE_` is baked into the public JS bundle **at build time**. This means the key is permanently embedded as a plain string in your deployed `.js` files — visible to anyone who opens DevTools → Sources and searches the bundle, **even if the network request that uses the key is never triggered**. No secret keys use this prefix in this project.
 3.  **`.gitignore` pre-configured:** All `.env` files are git-ignored in every subdirectory. Your keys will never be committed to GitHub.
 4.  **Amplify vs App Runner:** Set `VITE_API_URL` in Amplify (frontend — safe, it's just a URL). Set all secret keys (`TINYFISH_API_KEY`, `ELEVENLABS_API_KEY`, etc.) only in **App Runner** (backend).
 5.  **Backend Logging:** The backend will warn if a key is missing but will **never** log the actual key value.
@@ -129,6 +129,7 @@ Before pushing to GitHub, verify no secrets are present:
 grep -r "API_KEY=" . --include="*.env"
 ```
 *(Should return results only from local `.env` files, never from source files.)*
+
 
 ## 🎭 The Agent's Personas
 RevRecover is designed to handle multiple roles within the healthcare ecosystem. During your demo, you can showcase these two distinct personas:
