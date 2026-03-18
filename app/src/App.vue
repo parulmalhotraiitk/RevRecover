@@ -406,118 +406,133 @@ const toggleFaq = (index) => {
 </script>
 
 <template>
-  <div :class="['min-h-screen font-sans selection:bg-[#3B82F6] selection:text-white pb-10 transition-colors duration-300', isDark ? 'bg-[#0A0C10] text-[#E2E8F0]' : 'bg-slate-50 text-slate-800']">
-    <!-- Navbar -->
-    <nav :class="['border-b sticky top-0 z-50 backdrop-blur-md transition-colors duration-300', isDark ? 'border-[#1E293B] bg-[#0F172A]/80' : 'border-slate-200 bg-white/80']">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16 items-center">
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Activity class="w-5 h-5 text-white" />
-            </div>
-            <span :class="['font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r', isDark ? 'from-white to-slate-400' : 'from-slate-900 to-slate-600']">RevRecover</span>
-            <div class="flex flex-col ml-2">
-              <span :class="['text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors duration-300 w-fit', isDark ? 'bg-[#1E293B] text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200']">Powered by TinyFish AI</span>
-              <span class="text-[7.5px] font-bold text-slate-500 mt-1 uppercase tracking-tighter ml-1">
-                F: {{ frontendBuildTime }} | B: {{ backendBuildTime }}
-              </span>
-            </div>
-          </div>
-          <div class="flex items-center gap-6">
-            <!-- Reset Button -->
-            <button 
-              @click="resetDashboard"
-              :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 border', isDark ? 'text-slate-400 border-slate-700 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/5' : 'text-slate-500 border-slate-200 hover:text-red-600 hover:border-red-200 hover:bg-red-50']"
-              title="Reset All Data"
-            >
-              <Activity class="w-3.5 h-3.5" />
-              Reset Data
-            </button>
+<template>
+  <div :class="['flex h-screen font-sans selection:bg-[#0078D4] selection:text-white transition-colors duration-300 overflow-hidden', isDark ? 'bg-[#0f0f0f] text-[#E2E8F0]' : 'bg-[#faf9f8] text-[#323130]']">
+    
+    <!-- Sidebar -->
+    <aside :class="['w-64 flex-shrink-0 border-r flex flex-col transition-colors duration-300', isDark ? 'bg-[#151515] border-[#292929]' : 'bg-white border-[#edebe9]']">
+      <!-- Sidebar Header (Logo) -->
+      <div class="h-16 flex items-center px-6 border-b" :class="isDark ? 'border-[#292929]' : 'border-[#edebe9]'">
+        <div class="w-8 h-8 rounded bg-[#0078D4] flex items-center justify-center mr-3">
+          <Activity class="w-5 h-5 text-white" />
+        </div>
+        <div class="flex flex-col">
+          <span :class="['font-semibold text-lg tracking-tight', isDark ? 'text-white' : 'text-[#201f1e]']">RevRecover</span>
+          <span :class="['text-[9px] font-medium uppercase tracking-wider', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">AI Foundry</span>
+        </div>
+      </div>
 
-            <!-- Turbo Toggle (Hidden as per requirements) -->
-            <!-- Theme Toggle -->
-            <button 
-              @click="toggleTheme" 
-              :class="['p-2 rounded-xl border transition-all duration-300', isDark ? 'bg-[#1E293B] border-slate-700 text-amber-400 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-blue-600 hover:bg-slate-200']"
-              title="Toggle Theme"
-            >
-              <Sun v-if="isDark" class="w-5 h-5" />
-              <Moon v-else class="w-5 h-5" />
-            </button>
-            <div class="flex items-center gap-4">
-              <span :class="['text-sm font-medium transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-600']">Welcome, Admin</span>
-              <div :class="['w-9 h-9 rounded-full flex items-center justify-center border transition-colors duration-300', isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200']">
-                <UserCircle :class="['w-6 h-6 transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-600']" />
-              </div>
-            </div>
+      <!-- Navigation Links -->
+      <div class="flex-1 py-6 px-3 flex flex-col gap-1 overflow-y-auto">
+        <button 
+          @click="handleTabSwitch('queue')"
+          :class="['flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full text-left', activeTab === 'queue' ? (isDark ? 'bg-[#292929] text-white' : 'bg-[#f3f2f1] text-[#201f1e] font-semibold') : (isDark ? 'text-[#a19f9d] hover:bg-[#202020] hover:text-white' : 'text-[#605e5c] hover:bg-[#faf9f8] hover:text-[#201f1e]')]"
+        >
+          <Clock class="w-4 h-4" />
+          Denials Queue
+        </button>
+        <button 
+          @click="handleTabSwitch('history')"
+          :class="['flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full text-left', activeTab === 'history' ? (isDark ? 'bg-[#292929] text-white' : 'bg-[#f3f2f1] text-[#201f1e] font-semibold') : (isDark ? 'text-[#a19f9d] hover:bg-[#202020] hover:text-white' : 'text-[#605e5c] hover:bg-[#faf9f8] hover:text-[#201f1e]')]"
+        >
+          <CheckCircle class="w-4 h-4" />
+          Audit History
+        </button>
+        <button 
+          :class="['flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full text-left mt-1 opacity-50 cursor-not-allowed', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']"
+        >
+          <Users class="w-4 h-4" />
+          Patient Registry (Beta)
+        </button>
+      </div>
+
+      <!-- Sidebar Footer (User / Settings) -->
+      <div class="p-4 border-t flex flex-col gap-3" :class="isDark ? 'border-[#292929]' : 'border-[#edebe9]'">
+        <div class="flex items-center justify-between">
+          <button @click="toggleTheme" :class="['p-2 rounded-md transition-colors', isDark ? 'text-[#a19f9d] hover:bg-[#292929] hover:text-white' : 'text-[#605e5c] hover:bg-[#f3f2f1] hover:text-[#201f1e]']" title="Toggle Theme">
+            <Sun v-if="isDark" class="w-4 h-4" />
+            <Moon v-else class="w-4 h-4" />
+          </button>
+          <button @click="resetDashboard" :class="['p-2 rounded-md transition-colors', isDark ? 'text-[#a19f9d] hover:bg-[#292929] hover:text-red-400' : 'text-[#605e5c] hover:bg-[#f3f2f1] hover:text-red-600']" title="Reset Dashboard">
+            <Activity class="w-4 h-4" />
+          </button>
+        </div>
+        <div class="flex items-center gap-3">
+          <div :class="['w-8 h-8 rounded-full flex items-center justify-center bg-[#0078D4]/10']">
+            <UserCircle class="w-5 h-5 text-[#0078D4]" />
+          </div>
+          <div class="flex flex-col">
+            <span :class="['text-xs font-semibold', isDark ? 'text-white' : 'text-[#201f1e]']">Admin User</span>
+            <span :class="['text-[10px]', isDark ? 'text-[#8a8886]' : 'text-[#a19f9d]']">revrecover.contoso.com</span>
           </div>
         </div>
       </div>
-    </nav>
+    </aside>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <!-- Main Content Area Wrapper -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+      <!-- Top Contextual Header (Breadcrumb style) -->
+      <header :class="['h-16 border-b flex items-center px-8 transition-colors duration-300', isDark ? 'bg-[#151515] border-[#292929]' : 'bg-white border-[#edebe9]']">
+        <div class="flex items-center text-sm font-medium">
+          <span :class="isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]'">Workspaces</span>
+          <ChevronRight class="w-4 h-4 mx-2" :class="isDark ? 'text-[#605e5c]' : 'text-[#c8c6c4]'" />
+          <span :class="isDark ? 'text-white' : 'text-[#201f1e]'">Revenue Recovery</span>
+        </div>
+        <div class="ml-auto text-[10px] font-mono text-[#a19f9d] flex gap-4">
+          <span>F: {{ frontendBuildTime }}</span>
+          <span>B: {{ backendBuildTime }}</span>
+        </div>
+      </header>
+      
+      <!-- Scrollable Main Content -->
+      <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+
+      <div class="max-w-[1600px] mx-auto w-full">
       <!-- Analytics Section -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div :class="['border rounded-2xl p-6 shadow-xl flex flex-col relative overflow-hidden group transition-all duration-300', isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200 shadow-slate-200/50']">
-          <div :class="['absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl transition-all duration-500', isDark ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20' : 'bg-emerald-400/20 group-hover:bg-emerald-400/30']"></div>
+        <div :class="['border rounded-lg p-6 flex flex-col relative transition-all duration-300', isDark ? 'bg-[#151515] border-[#292929]' : 'bg-white border-[#edebe9]']">
           <div class="flex items-center justify-between mb-2">
-            <span :class="['text-sm font-medium transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">Revenue Recovered Pending</span>
-            <DollarSign class="w-4 h-4 text-emerald-400" />
+            <span :class="['text-sm font-semibold transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">Revenue Recovered Pending</span>
+            <DollarSign class="w-4 h-4 text-[#0078D4]" />
           </div>
-          <span :class="['text-3xl font-bold tracking-tight transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">${{ recoveredRevenue.toLocaleString() }}</span>
-          <div class="mt-4 text-xs flex items-center gap-1 text-emerald-400 font-medium">
+          <span :class="['text-3xl font-semibold tracking-tight transition-colors duration-300', isDark ? 'text-white' : 'text-[#201f1e]']">${{ recoveredRevenue.toLocaleString() }}</span>
+          <div class="mt-4 text-xs flex items-center gap-1 text-[#0078D4] font-medium">
             <Activity class="w-3 h-3" />
             <span>+12.5% this month</span>
           </div>
         </div>
 
-        <div :class="['border rounded-2xl p-6 shadow-xl flex flex-col relative overflow-hidden group transition-all duration-300', isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200 shadow-slate-200/50']">
-          <div :class="['absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl transition-all duration-500', isDark ? 'bg-blue-500/10 group-hover:bg-blue-500/20' : 'bg-blue-400/20 group-hover:bg-blue-400/30']"></div>
+        <div :class="['border rounded-lg p-6 flex flex-col relative transition-all duration-300', isDark ? 'bg-[#151515] border-[#292929]' : 'bg-white border-[#edebe9]']">
           <div class="flex items-center justify-between mb-2">
-            <span :class="['text-sm font-medium transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">Agent Success Rate</span>
-            <CheckCircle class="w-4 h-4 text-blue-400" />
+            <span :class="['text-sm font-semibold transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">Agent Success Rate</span>
+            <CheckCircle class="w-4 h-4 text-[#0078D4]" />
           </div>
-          <span :class="['text-3xl font-bold tracking-tight transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">94.2%</span>
-          <div class="mt-4 text-xs flex items-center gap-1 text-blue-400 font-medium">
+          <span :class="['text-3xl font-semibold tracking-tight transition-colors duration-300', isDark ? 'text-white' : 'text-[#201f1e]']">94.2%</span>
+          <div class="mt-4 text-xs flex items-center gap-1 text-[#0078D4] font-medium">
             <span>Vs. 41% Human Baseline</span>
           </div>
         </div>
 
-        <div :class="['border rounded-2xl p-6 shadow-xl flex flex-col relative overflow-hidden group transition-all duration-300', isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200 shadow-slate-200/50']">
-          <div :class="['absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl transition-all duration-500', isDark ? 'bg-purple-500/10 group-hover:bg-purple-500/20' : 'bg-purple-400/20 group-hover:bg-purple-400/30']"></div>
+        <div :class="['border rounded-lg p-6 flex flex-col relative transition-all duration-300', isDark ? 'bg-[#151515] border-[#292929]' : 'bg-white border-[#edebe9]']">
           <div class="flex items-center justify-between mb-2">
-            <span :class="['text-sm font-medium transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">Human Hours Saved</span>
-            <Clock class="w-4 h-4 text-purple-400" />
+            <span :class="['text-sm font-semibold transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">Human Hours Saved</span>
+            <Clock class="w-4 h-4 text-[#0078D4]" />
           </div>
-          <span :class="['text-3xl font-bold tracking-tight transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">{{ hoursSaved }} hrs</span>
-          <div :class="['mt-4 text-xs font-medium transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">
+          <span :class="['text-3xl font-semibold tracking-tight transition-colors duration-300', isDark ? 'text-white' : 'text-[#201f1e]']">{{ hoursSaved }} hrs</span>
+          <div :class="['mt-4 text-xs font-medium transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">
             Automating multi-step portal work
           </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-4">
         <div>
-          <h1 :class="['text-2xl font-bold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">Revenue Recovery Workspace</h1>
-          <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">Identifying high-value claims ready for autonomous appeal generation.</p>
+          <h1 :class="['text-xl font-semibold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-[#201f1e]']">Recovery Workspace</h1>
+          <p :class="['text-sm transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">Review high-value claims ready for autonomous appeal generation.</p>
         </div>
       </div>
 
-      <!-- Tab Navigation -->
-      <div class="flex items-center gap-1 mb-6 p-1 rounded-xl w-fit transition-colors duration-300" :class="isDark ? 'bg-[#111827] border border-[#1E293B]' : 'bg-slate-200/50 border border-slate-200'">
-        <button 
-          @click="handleTabSwitch('queue')"
-          :class="['px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300', activeTab === 'queue' ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white text-blue-600 shadow-sm') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')]"
-        >
-          Denials Queue
-        </button>
-        <button 
-          @click="handleTabSwitch('history')"
-          :class="['px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300', activeTab === 'history' ? (isDark ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white text-blue-600 shadow-sm') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')]"
-        >
-          Audit History
-        </button>
-      </div>
+
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -528,23 +543,23 @@ const toggleFaq = (index) => {
             :key="claim.id"
             @click="selectClaim(claim)"
             :class="[
-              'border rounded-2xl p-5 cursor-pointer transition-all duration-300 relative group overflow-hidden',
+              'border p-4 cursor-pointer transition-all duration-200 relative group overflow-hidden first:rounded-t-md last:rounded-b-md mb-[-1px]',
               selectedClaim?.id === claim.id 
-                ? (isDark ? 'border-[#3B82F6] ring-1 ring-[#3B82F6] shadow-[0_0_20px_rgba(59,130,246,0.15)] bg-gradient-to-r from-[#111827] to-[#1E3A8A]/10' : 'border-[#3B82F6] ring-1 ring-[#3B82F6] bg-blue-50/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]') 
-                : (isDark ? 'border-[#1E293B] bg-[#111827] hover:border-slate-600 hover:bg-[#1E293B]/50' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md')
+                ? (isDark ? 'border-[#0078D4] bg-[#292929] z-10' : 'border-[#0078D4] bg-[#f3f2f1] z-10') 
+                : (isDark ? 'border-[#292929] bg-[#151515] hover:bg-[#202020]' : 'border-[#edebe9] bg-white hover:bg-[#faf9f8]')
             ]"
           >
             <div class="flex justify-between items-start mb-3">
               <div class="flex items-center gap-3">
-                <div :class="['p-2 rounded-lg border transition-colors duration-300', isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-100']">
-                  <ShieldAlert class="w-5 h-5 text-red-500" />
+                <div :class="['p-2 rounded border transition-colors duration-300', isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-[#fdf3f4] border-[#d13438] text-[#d13438]']">
+                  <ShieldAlert class="w-4 h-4" />
                 </div>
                 <div>
                   <h3 :class="['font-bold text-lg transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">{{ claim.patient }}</h3>
-                  <div :class="['flex items-center gap-2 text-xs mt-0.5 transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">
+                  <div :class="['flex items-center gap-2 text-xs mt-0.5 transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">
                     <span>ID: {{ claim.id }}</span>
                     <span>•</span>
-                    <span :class="['px-1.5 py-0.5 rounded font-bold transition-all duration-300', isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700']">{{ claim.payer }}</span>
+                    <span :class="['px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all duration-300', isDark ? 'bg-[#0078D4]/10 text-[#0078D4] border-[#0078D4]/20' : 'bg-[#eff6fc] text-[#0078D4] border-[#0078D4]/20']">{{ claim.payer }}</span>
                   </div>
                 </div>
               </div>
@@ -598,13 +613,13 @@ const toggleFaq = (index) => {
 
         <!-- Right Column: Detail View & AI Execution -->
         <div class="lg:col-span-1">
-          <div v-if="selectedClaim" :class="['border shadow-2xl sticky top-24 overflow-hidden flex flex-col h-[calc(100vh-8rem)] transition-all duration-300 rounded-2xl', isDark ? 'bg-[#111827] border-[#1E293B]' : 'bg-white border-slate-200 shadow-slate-200/50']">
+          <div v-if="selectedClaim" :class="['border sticky top-24 overflow-hidden flex flex-col h-[calc(100vh-8rem)] transition-all duration-300 rounded-lg', isDark ? 'bg-[#151515] border-[#292929]' : 'bg-white border-[#edebe9]']">
             <!-- Header -->
-            <div :class="['p-6 border-b transition-colors duration-300', isDark ? 'border-[#1E293B] bg-gradient-to-b from-[#1E293B]/50 to-transparent' : 'border-slate-100 bg-gradient-to-b from-slate-50 to-transparent']">
-              <h2 :class="['text-xl font-bold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">
+            <div :class="['p-6 border-b transition-colors duration-300', isDark ? 'border-[#292929] bg-[#151515]' : 'border-[#edebe9] bg-[#faf9f8]']">
+              <h2 :class="['text-lg font-semibold tracking-tight mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-[#201f1e]']">
                 {{ selectedClaim.status === 'Appealing' ? 'Audit Intelligence' : 'Claim Resolution' }}
               </h2>
-              <p :class="['text-sm transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">
+              <p :class="['text-sm transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">
                 {{ selectedClaim.status === 'Appealing' ? 'Reviewing agent-generated clinical argument.' : 'Autonomous workflow ready.' }}
               </p>
             </div>
@@ -717,25 +732,25 @@ const toggleFaq = (index) => {
             </div>
 
               <!-- Live Agent Feed (Terminal) -->
-              <div v-if="agentStatus !== 'idle'" :class="['mt-6 border rounded-xl overflow-hidden flex flex-col shadow-inner transition-colors duration-300', isDark ? 'border-slate-700 bg-[#090B0F]' : 'border-slate-200 bg-slate-900 shadow-slate-200/50']">
-                <div :class="['px-3 py-2 border-b flex items-center gap-2 text-xs font-mono transition-colors duration-300', isDark ? 'bg-[#1E293B] border-slate-700 text-slate-400' : 'bg-slate-800 border-slate-700 text-slate-400']">
-                  <Terminal class="w-4 h-4 text-emerald-400" />
+              <div v-if="agentStatus !== 'idle'" :class="['mt-6 border rounded-lg overflow-hidden flex flex-col transition-colors duration-300', isDark ? 'border-[#292929] bg-[#0f0f0f]' : 'border-[#edebe9] bg-[#faf9f8]']">
+                <div :class="['px-3 py-2 border-b flex items-center gap-2 text-[10px] font-mono transition-colors duration-300', isDark ? 'bg-[#151515] border-[#292929] text-[#a19f9d]' : 'bg-white border-[#edebe9] text-[#605e5c]']">
+                  <Terminal class="w-3.5 h-3.5 text-[#0078D4]" />
                   <span>tinyfish-agent-feed.log</span>
-                  <div class="ml-auto flex gap-1.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                  <div class="ml-auto flex gap-1.5 opacity-50">
+                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                    <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+                    <div class="w-2 h-2 rounded-full bg-green-400"></div>
                   </div>
                 </div>
-                <div :class="['p-4 font-mono text-xs h-64 overflow-y-auto flex flex-col gap-2 transition-colors duration-300', isDark ? 'bg-[#090B0F]' : 'bg-slate-900']">
+                <div :class="['p-4 font-mono text-xs h-64 overflow-y-auto flex flex-col gap-2 transition-colors duration-300', isDark ? 'bg-[#0f0f0f] text-[#c8c6c4]' : 'bg-[#faf9f8] text-[#323130]']">
                   <div v-for="(log, idx) in liveFeed" :key="idx" class="flex items-start text-slate-300">
                     <span class="pr-3 text-slate-600 select-none">[{{ log.time }}]</span>
                     <span :class="log.message.includes('[SUCCESS]') ? 'text-emerald-400 font-bold' : log.message.includes('[ERROR]') ? 'text-red-400 font-bold' : ''">{{ log.message }}</span>
                   </div>
-                  <div v-if="agentStatus === 'running'" class="flex items-center gap-2 text-slate-500 mt-2">
+                  <div v-if="agentStatus === 'running'" class="flex items-center gap-2 mt-2" :class="isDark ? 'text-[#8a8886]' : 'text-[#a19f9d]'">
                     <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0078D4] opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-[#0078D4]"></span>
                     </span>
                     Agent traversing DOM...
                   </div>
@@ -743,84 +758,85 @@ const toggleFaq = (index) => {
               </div>
 
             <!-- Footer Action Area -->
-            <div :class="['p-6 border-t mt-auto transition-colors duration-300', isDark ? 'border-[#1E293B] bg-[#0A0C10]' : 'border-slate-100 bg-slate-50/50']">
+            <div :class="['p-6 border-t mt-auto transition-colors duration-300', isDark ? 'border-[#292929] bg-[#151515]' : 'border-[#edebe9] bg-[#faf9f8]']">
                <button 
                  v-if="(agentStatus === 'idle' || agentStatus === 'error') && selectedClaim.status === 'Denied'"
                  @click="handleRunAgent"
-                 :class="['w-full relative group overflow-hidden rounded-xl font-bold py-3.5 px-6 shadow-xl transition-all duration-300 flex items-center justify-between', isDark ? 'bg-gradient-to-r from-white to-slate-200 text-slate-900 shadow-[0_0_40px_rgba(255,255,255,0.1)]' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/20 hover:from-blue-700 hover:to-indigo-700']"
+                 class="w-full font-semibold py-2.5 px-4 rounded transition-all duration-200 flex items-center justify-center gap-2 bg-[#0078D4] hover:bg-[#106ebe] text-white"
                >
-                 <span class="z-10 text-sm tracking-wide">{{ agentStatus === 'error' ? 'Retry Autonomous Appeal' : 'Automate Appeal with Agent' }}</span>
-                 <ArrowRight class="w-5 h-5 z-10 group-hover:translate-x-1 transition-transform" />
+                 <span class="text-sm tracking-wide">{{ agentStatus === 'error' ? 'Retry Autonomous Appeal' : 'Automate Appeal with Agent' }}</span>
+                 <Activity class="w-4 h-4" />
                </button>
 
-               <div v-else-if="agentStatus === 'running'" :class="['w-full font-medium py-3.5 px-6 rounded-xl flex items-center justify-center gap-3 border transition-colors duration-300', isDark ? 'bg-[#1E293B] text-slate-300 border-slate-700' : 'bg-white text-slate-600 border-slate-200 shadow-sm']">
-                  <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+               <div v-else-if="agentStatus === 'running'" :class="['w-full font-medium py-2.5 px-4 rounded flex items-center justify-center gap-2 border transition-colors duration-300', isDark ? 'bg-[#292929] text-white border-[#3e3e42]' : 'bg-white text-[#201f1e] border-[#edebe9]']">
+                  <svg class="animate-spin h-4 w-4 text-[#0078D4]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Agent Session Active...
+                  <span class="text-sm">Agent Session Active...</span>
                </div>
 
-               <div v-else class="w-full bg-emerald-500/10 text-emerald-400 font-bold py-4 px-6 rounded-xl border border-emerald-500/30 flex items-center justify-center gap-3">
-                  <CheckCircle class="w-5 h-5" />
-                  Appeal Successfully Filed
+               <div v-else :class="['w-full font-semibold py-2.5 px-4 rounded border flex items-center justify-center gap-2', isDark ? 'bg-[#107c10]/10 text-[#107c10] border-[#107c10]/20' : 'bg-[#dff6dd] text-[#107c10] border-[#107c10]/20']">
+                  <CheckCircle class="w-4 h-4" />
+                  <span class="text-sm">Appeal Successfully Filed</span>
                </div>
             </div>
           </div>
           
-          <div v-else :class="['h-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center md:min-h-[600px] text-center px-6 transition-colors duration-300', isDark ? 'border-[#1E293B] bg-[#0A0C10]/50' : 'border-slate-200 bg-white shadow-inner shadow-slate-50']">
-             <div :class="['w-16 h-16 rounded-full flex items-center justify-center mb-4 border transition-colors duration-300', isDark ? 'bg-[#1E293B] border-slate-700' : 'bg-slate-50 border-slate-200']">
-                <ShieldAlert :class="['w-8 h-8 transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-300']" />
+          <div v-else :class="['h-full border border-dashed rounded-lg flex flex-col items-center justify-center md:min-h-[600px] text-center px-6 transition-colors duration-300', isDark ? 'border-[#3e3e42] bg-[#151515]' : 'border-[#c8c6c4] bg-[#faf9f8]']">
+             <div :class="['w-12 h-12 rounded flex items-center justify-center mb-4 transition-colors duration-300', isDark ? 'bg-[#292929]' : 'bg-white overflow-hidden shadow-sm border border-[#edebe9]']">
+                <ShieldAlert :class="['w-6 h-6 transition-colors duration-300', isDark ? 'text-[#8a8886]' : 'text-[#a19f9d]']" />
              </div>
-             <h3 :class="['text-xl font-bold mb-2 transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">No Claim Selected</h3>
-             <p :class="['text-sm max-w-[250px] transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">Select a denied claim from the queue to review context and deploy the TinyFish autonomous agent.</p>
+             <h3 :class="['text-lg font-semibold mb-1 transition-colors duration-300', isDark ? 'text-white' : 'text-[#201f1e]']">No Claim Selected</h3>
+             <p :class="['text-sm max-w-[250px] transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">Select a denied claim from the queue to review context and deploy the TinyFish autonomous agent.</p>
           </div>
         </div>
 
       </div>
       <!-- FAQ Section -->
-      <div :class="['mt-20 max-w-3xl mx-auto border-t pt-12 mb-20 transition-colors duration-300', isDark ? 'border-[#1E293B]' : 'border-slate-200']">
-        <div class="flex items-center gap-3 mb-8">
-          <div :class="['p-2 rounded-lg border transition-colors duration-300', isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-100']">
-            <HelpCircle class="w-5 h-5 text-blue-400" />
+      <div :class="['mt-12 mb-20 transition-colors duration-300']">
+        <div class="flex items-center gap-3 mb-6">
+          <div :class="['p-2 rounded border transition-colors duration-300', isDark ? 'bg-[#0078D4]/10 border-[#0078D4]/20' : 'bg-[#eff6fc] border-[#0078D4]/20']">
+            <HelpCircle class="w-4 h-4 text-[#0078D4]" />
           </div>
           <div>
-            <h2 :class="['text-xl font-bold transition-colors duration-300', isDark ? 'text-white' : 'text-slate-900']">System FAQ & Technical Specs</h2>
-            <p :class="['text-xs uppercase tracking-widest mt-1 transition-colors duration-300', isDark ? 'text-slate-500' : 'text-slate-400']">Winning with TinyFish Agentic Framework</p>
+            <h2 :class="['text-lg font-semibold transition-colors duration-300', isDark ? 'text-white' : 'text-[#201f1e]']">System FAQ & Technical Specs</h2>
+            <p :class="['text-[10px] uppercase tracking-widest mt-0.5 transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">Powered by TinyFish Agentic Framework</p>
           </div>
         </div>
 
-        <div class="space-y-3">
+        <div class="space-y-2">
           <div 
             v-for="(faq, idx) in faqs" 
             :key="idx"
             :class="[
-              'border rounded-2xl overflow-hidden transition-all duration-300', 
+              'border rounded-md overflow-hidden transition-all duration-200', 
               openFaq === idx 
-                ? (isDark ? 'border-blue-500/50 bg-[#1e293b]/30' : 'border-blue-300 bg-blue-50') 
-                : (isDark ? 'border-[#1E293B] bg-[#111827] hover:border-slate-700' : 'border-slate-200 bg-white hover:border-slate-300')
+                ? (isDark ? 'border-[#0078D4] bg-[#292929]' : 'border-[#0078D4] bg-[#f3f2f1]') 
+                : (isDark ? 'border-[#292929] bg-[#151515] hover:border-[#3e3e42]' : 'border-[#edebe9] bg-white hover:border-[#c8c6c4]')
             ]"
           >
             <button 
               @click="toggleFaq(idx)"
-              class="w-full px-6 py-5 flex items-center justify-between text-left group"
+              class="w-full px-5 py-4 flex items-center justify-between text-left group"
             >
-              <span :class="['font-semibold transition-colors duration-300', isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900']">{{ faq.q }}</span>
+              <span :class="['font-medium text-sm transition-colors duration-200', isDark ? 'text-white' : 'text-[#201f1e]']">{{ faq.q }}</span>
               <ChevronDown 
-                :class="['w-5 h-5 transition-transform duration-300', isDark ? 'text-slate-50' : 'text-slate-400', openFaq === idx ? 'rotate-180 text-blue-400' : '']"
+                :class="['w-4 h-4 transition-transform duration-200', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]', openFaq === idx ? 'rotate-180 text-[#0078D4]' : '']"
               />
             </button>
             <div 
-              class="px-6 overflow-hidden transition-all duration-300 ease-in-out"
-              :style="{ maxHeight: openFaq === idx ? '200px' : '0px', paddingBottom: openFaq === idx ? '20px' : '0px' }"
+              class="px-5 overflow-hidden transition-all duration-300 ease-in-out"
+              :style="{ maxHeight: openFaq === idx ? '200px' : '0px', paddingBottom: openFaq === idx ? '16px' : '0px' }"
             >
-              <p :class="['text-sm leading-relaxed transition-colors duration-300', isDark ? 'text-slate-400' : 'text-slate-500']">{{ faq.a }}</p>
+              <p :class="['text-sm leading-relaxed transition-colors duration-300', isDark ? 'text-[#a19f9d]' : 'text-[#605e5c]']">{{ faq.a }}</p>
             </div>
           </div>
         </div>
       </div>
+      </div> <!-- End max-w container -->
     </main>
-  </div>
+  </div> <!-- End App wrapper -->
 </template>
 
 <style>
